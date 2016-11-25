@@ -13,6 +13,10 @@ defmodule Todo.Server do
     GenServer.cast(todo_server, {:delete_entry, id})
   end
 
+  def update_entry(todo_server, entry) do
+    GenServer.cast(todo_server, {:update_entry, entry})
+  end
+
   def entries(todo_server, date) do
     GenServer.call(todo_server, {:entries, date})
   end
@@ -34,6 +38,12 @@ defmodule Todo.Server do
 
   def handle_cast({:delete_entry, id}, {name, todo_list}) do
     new_state = Todo.List.delete_entry(todo_list, id)
+    Todo.Database.store(name, new_state)
+    {:noreply, {name, new_state}}
+  end
+
+  def handle_cast({:update_entry, entry}, {name, todo_list}) do
+    new_state = Todo.List.update_entry(todo_list, entry)
     Todo.Database.store(name, new_state)
     {:noreply, {name, new_state}}
   end

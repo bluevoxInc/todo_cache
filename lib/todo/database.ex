@@ -6,21 +6,13 @@ defmodule Todo.Database do
   end
 
   def store(key, data) do
-    case get_worker(key) do
-      {:ok, worker_pid} ->
-        Todo.DatabaseWorker.store(worker_pid, key, data)
-      _ -> 
-        {:error, "no worker process found"}
-    end
+    worker_pid = get_worker(key)
+    Todo.DatabaseWorker.store(worker_pid, key, data)
   end
 
   def get(key) do
-    case get_worker(key) do
-      {:ok, worker_pid} -> 
-        Todo.DatabaseWorker.get(worker_pid, key)
-      _ -> 
-        {:error, "no worker process found"}
-    end
+    worker_pid = get_worker(key) 
+    Todo.DatabaseWorker.get(worker_pid, key)
   end
 
   def get_worker(key) do
@@ -34,7 +26,10 @@ defmodule Todo.Database do
       0..2 
       |> Enum.reduce(HashDict.new, 
         &HashDict.put(&2, &1, 
-          Todo.DatabaseWorker.start(db_folder)))
+        (fn -> 
+          {:ok, pid} = Todo.DatabaseWorker.start(db_folder)
+          pid
+        end).()))
 
     IO.inspect worker_pool
 
