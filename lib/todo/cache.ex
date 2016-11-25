@@ -30,4 +30,11 @@ defmodule Todo.Cache do
     GenServer.call(cache_pid, {:server_process, todo_list_name})
   end
 
+  def handle_info({:stop}, state) do
+    {:stop, :normal, state}
+  end
+  def handle_info(_, state) do
+    {:noreply, state}
+  end
+
 end

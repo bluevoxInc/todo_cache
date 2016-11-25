@@ -27,6 +27,6 @@ defmodule Todo.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    []
+    [{:meck, "~> 0.8.3", only: :test}]
   end
 end

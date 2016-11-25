@@ -50,10 +50,16 @@ defmodule Todo.Server do
     {:reply, Todo.List.all_entries(todo_list), {name, todo_list}}
   end
 
-  #handle the data load here so as not to block GenServer init/start
+  #handle the data load here so as not to block GenServer init/start -- this is not necessary for this app, just want to try out the technique.
   def handle_info(:real_init, {name, _}) do
     {:noreply, {name, Todo.Database.get(name) || Todo.List.new}}
   end
+  def handle_info({:stop}, state) do
+    {:stop, :normal, state}
+  end
+  #overriding handle_info above requires that a default handle_info be defines as well
+  def handle_info(_, state), do: {:noreply, state}
+
 
 end
 
