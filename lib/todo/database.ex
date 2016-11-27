@@ -1,8 +1,9 @@
 defmodule Todo.Database do
   use GenServer
 
-  def start(db_folder) do
-    GenServer.start(__MODULE__, db_folder, name: :database_server)
+  def start_link(db_folder) do
+    IO.puts "Starting database server"
+    GenServer.start_link(__MODULE__, db_folder, name: :database_server)
   end
 
   def store(key, data) do
@@ -27,7 +28,7 @@ defmodule Todo.Database do
       |> Enum.reduce(HashDict.new, 
         &HashDict.put(&2, &1, 
         (fn -> 
-          {:ok, pid} = Todo.DatabaseWorker.start(db_folder)
+          {:ok, pid} = Todo.DatabaseWorker.start_link(db_folder)
           pid
         end).()))
 

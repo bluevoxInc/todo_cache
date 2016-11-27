@@ -3,21 +3,18 @@ defmodule DatabaseServerTest do
 
   setup do
     :meck.new(Todo.DatabaseWorker, [:no_link])
-    :meck.expect(Todo.DatabaseWorker, :start, &MockTodo.DatabaseWorker.start/1)
+    :meck.expect(Todo.DatabaseWorker, :start_link, &MockTodo.DatabaseWorker.start_link/1)
     :meck.expect(Todo.DatabaseWorker, :store, &MockTodo.DatabaseWorker.store/3)
     :meck.expect(Todo.DatabaseWorker, :get, &MockTodo.DatabaseWorker.get/2)
-    Todo.Database.start("./test_persist")
+    Todo.Database.start_link("./test_persist")
 
     on_exit(fn ->
       File.rm_rf("./test_persist/")
-      send(:database_server, {:stop})
       :meck.unload(Todo.DatabaseWorker)
     end)
   end
 
   test "pooling" do
-    #Test to make sure we use the same worker_pid for the same key and a
-    # different worker_pid for a different key.
     assert(Todo.Database.store(1, :a) == Todo.Database.store(1, :a))
     assert(Todo.Database.get(1) == Todo.Database.store(1, :a))
     assert(Todo.Database.store(2, :a) != Todo.Database.store(1, :a))
@@ -27,8 +24,8 @@ end
 defmodule MockTodo.DatabaseWorker do
   use GenServer
 
-  def start(_) do
-    GenServer.start(__MODULE__, nil)
+  def start_link(_) do
+    GenServer.start_link(__MODULE__, nil)
   end
 
   def store(worker_pid, key, data) do
