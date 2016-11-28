@@ -1,5 +1,5 @@
 defmodule Todo.List do
-  defstruct auto_id: 1, entries: HashDict.new
+  defstruct auto_id: 1, entries: Map.new
 
   def new(entries \\ []) do
     Enum.reduce(
@@ -18,7 +18,7 @@ defmodule Todo.List do
     entry
   ) do
     entry = Map.put(entry, :id, auto_id)
-    new_entries = HashDict.put(entries, auto_id, entry)
+    new_entries = Map.put(entries, auto_id, entry)
 
     %Todo.List{todo_list |
       entries: new_entries,
@@ -58,7 +58,7 @@ defmodule Todo.List do
 
       old_entry ->
         new_entry = updater_fun.(old_entry)
-        new_entries = HashDict.put(entries, new_entry.id, new_entry)
+        new_entries = Map.put(entries, new_entry.id, new_entry)
         %Todo.List{todo_list | entries: new_entries}
     end
   end
@@ -67,6 +67,6 @@ defmodule Todo.List do
     %Todo.List{entries: entries} = todo_list,
     entry_id
   ) do
-    %Todo.List{todo_list | entries: HashDict.delete(entries, entry_id)}
+    %Todo.List{todo_list | entries: Map.delete(entries, entry_id)}
   end
 end
