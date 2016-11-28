@@ -40,13 +40,6 @@ defmodule Todo.DatabaseWorker do
     {:reply, data, db_folder}
   end
 
-  def handle_info({:stop}, db_folder) do
-    {:stop, :normal, db_folder}
-  end
-  def handle_info(_, state) do
-    {:noreply, state}
-  end
-
   defp file_name(db_folder, key), do: "#{db_folder}/#{key}"
 
   #The :via option expects a module that exports 

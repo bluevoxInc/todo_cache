@@ -3,7 +3,19 @@ defmodule Todo.Server do
 
   def start_link(list_name) do
     IO.puts("Starting to-do server for #{list_name}")
-    GenServer.start_link(Todo.Server, list_name)
+    GenServer.start_link(
+      Todo.Server, 
+      list_name, 
+      name: via_tuple(list_name)
+    )
+  end
+
+  defp via_tuple(name) do
+    {:via, Todo.ProcessRegistry, {:todo_server, name}}
+  end
+
+  def whereis(name) do
+    Todo.ProcessRegistry.whereis_name({:todo_server, name})
   end
 
   def add_entry(todo_server, new_entry) do
@@ -25,6 +37,7 @@ defmodule Todo.Server do
   def all_entries(todo_server) do
     GenServer.call(todo_server, {:all_entries})
   end
+
 
   def init(name) do
     send(self, :real_init) #send first msg to handle data load
@@ -61,14 +74,16 @@ defmodule Todo.Server do
     {:reply, Todo.List.all_entries(todo_list), {name, todo_list}}
   end
 
-  #handle the data load here so as not to block GenServer init/start -- this is not necessary for this app, just want to try out the technique.
+  # handle the data load here so as not to block GenServer init/start
+  #-- this is not necessary for this app, just to try out the technique
   def handle_info(:real_init, {name, _}) do
     {:noreply, {name, Todo.Database.get(name) || Todo.List.new}}
   end
   def handle_info({:stop}, state) do
     {:stop, :normal, state}
   end
-  #overriding handle_info above requires that a default handle_info be defined as well
+  # overriding handle_info above requires that a default 
+  # handle_info be defined as well
   def handle_info(_, state), do: {:noreply, state}
 
 
