@@ -79,6 +79,7 @@ defmodule Todo.Server do
   def handle_info(:real_init, {name, _}) do
     {:noreply, {name, Todo.Database.get(name) || Todo.List.new}}
   end
+  # needed for test purposes
   def handle_info({:stop}, state) do
     {:stop, :normal, state}
   end

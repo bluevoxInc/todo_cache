@@ -10,7 +10,7 @@ defmodule Todo.List do
   end
 
   def size(todo_list) do
-    todo_list.entries.size
+    map_size(todo_list.entries)
   end
 
   def add_entry(

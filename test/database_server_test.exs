@@ -3,7 +3,7 @@ defmodule DatabaseServerTest do
 
   setup do
     :meck.new(Todo.DatabaseWorker, [:no_link])
-    :meck.expect(Todo.DatabaseWorker, :start_link, &MockTodo.DatabaseWorker.start_link/1)
+    :meck.expect(Todo.DatabaseWorker, :start_link, &MockTodo.DatabaseWorker.start/2)
     :meck.expect(Todo.DatabaseWorker, :store, &MockTodo.DatabaseWorker.store/3)
     :meck.expect(Todo.DatabaseWorker, :get, &MockTodo.DatabaseWorker.get/2)
     Todo.Database.start_link("./test_persist")
@@ -15,6 +15,8 @@ defmodule DatabaseServerTest do
   end
 
   test "pooling" do
+    # NOTE: return values come from MockTodo.DatabaseWorker, 
+    # which returns self for store and get calls.
     assert(Todo.Database.store(1, :a) == Todo.Database.store(1, :a))
     assert(Todo.Database.get(1) == Todo.Database.store(1, :a))
     assert(Todo.Database.store(2, :a) != Todo.Database.store(1, :a))
@@ -24,16 +26,20 @@ end
 defmodule MockTodo.DatabaseWorker do
   use GenServer
 
-  def start_link(_) do
-    GenServer.start_link(__MODULE__, nil)
+  def start(_, worker_id) do
+    GenServer.start_link(__MODULE__, nil, name: worker_alias(worker_id))
   end
 
-  def store(worker_pid, key, data) do
-    GenServer.call(worker_pid, {:store, key, data})
+  def store(worker_id, key, data) do
+    GenServer.call(worker_alias(worker_id), {:store, key, data})
   end
 
-  def get(worker_pid, key) do
-    GenServer.call(worker_pid, {:get, key})
+  def get(worker_id, key) do
+    GenServer.call(worker_alias(worker_id), {:get, key})
+  end
+
+  defp worker_alias(worker_id) do
+    :"database_worker_#{worker_id}"
   end
 
 
@@ -49,6 +55,7 @@ defmodule MockTodo.DatabaseWorker do
     {:reply, self, state}
   end
 
+  # Needed for test purposes
   def handle_info({:stop}, state), do: {:stop, :normal, state}
   def handle_info(_, state), do: {:noreply, state}
 end
