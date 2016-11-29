@@ -23,6 +23,9 @@ defmodule Todo.DatabaseWorker do
 
   def handle_cast({:store, key, data}, db_folder) do
     file_name(db_folder, key)
+
+    # Note the !. We need to fast fail and 'Let it crash' if we
+    # cannot write to file. No sense in continuing if cannot persist data.
     |> File.write!(:erlang.term_to_binary(data))
 
     IO.inspect(self)
@@ -34,7 +37,9 @@ defmodule Todo.DatabaseWorker do
   def handle_call({:get, key}, _, db_folder) do
     data = case File.read(file_name(db_folder, key)) do
       {:ok, contents} -> :erlang.binary_to_term(contents)
-      _ -> nil
+      {:error, :enoent} -> nil # if file doesn't exist return nil
+      # any other file read errors like insufficient permissions, 
+      # 'Let it crash'.
     end
 
     {:reply, data, db_folder}

@@ -2,7 +2,8 @@ defmodule Todo.PoolSupervisor do
   use Supervisor
 
   def start_link(db_folder, pool_size) do
-    Supervisor.start_link(__MODULE__, {db_folder, pool_size})
+    Supervisor.start_link(__MODULE__, {db_folder, pool_size}, 
+    name: :pool_supervisor)
   end
 
   def init({db_folder, pool_size}) do

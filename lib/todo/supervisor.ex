@@ -2,7 +2,7 @@ defmodule Todo.Supervisor do
   use Supervisor
 
   def start_link do
-    Supervisor.start_link(__MODULE__, nil)
+    Supervisor.start_link(__MODULE__, nil, name: :todo_supervisor)
   end
 
 
