@@ -33,7 +33,6 @@ true
 #new pid expected:  
 iex(5)> bills_list = Todo.Cache.server_process("bills_list")  
 PID<0.135.0>  
-iex(9)>  
 
 #add entries:  
 iex(6)> Todo.Server.add_entry(bills_list, %{date: {2016, 12, 25}, title: "Christmas"})  
@@ -88,7 +87,7 @@ PID<0.118.0>
 
 iex(17)> Todo.Server.add_entry(alices_list, %{date: {2016, 12, 23}, title: "Movie"})    
 :ok  
-#PID<0.118.0>  
+PID<0.118.0>  
 ": storing alices_list"  
 
 iex(18)> Todo.Server.add_entry(alices_list, %{date: {2016, 12, 23}, title: "Shopping"})  
