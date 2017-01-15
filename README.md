@@ -4,6 +4,8 @@
 
 ## Operation
 
+[wnorman@mrRoboto todo_cache] $ iex -S mix
+
 Erlang/OTP 18 [erts-7.2.1] [source] [64-bit] [smp:8:8] [async-threads:10] [hipe] [kernel-poll:false]
 
 Interactive Elixir (1.3.3) - press Ctrl+C to exit (type h() ENTER for help)
