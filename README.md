@@ -150,3 +150,16 @@ iex(27)> Todo.Server.all_entries(alices_list)                                   
      %{date: {2016, 12, 24}, id: 3, title: "Shopping/Movie"}]  
 
 
+# Let's see how the Process Registry is stashing processes:
+iex(28)> Todo.ProcessRegistry.whereis_name({:todo_server,"bills_list"})
+#PID<0.135.0>
+ 
+iex(29)> Todo.ProcessRegistry.whereis_name({:database_worker,1})
+#PID<0.129.0>
+
+iex(30)> Todo.ProcessRegistry.whereis_name({:database_worker,2})
+#PID<0.130.0>
+ 
+iex(31)> Todo.ProcessRegistry.whereis_name({:database_worker,3})
+#PID<0.131.0>
+
