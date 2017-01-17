@@ -40,7 +40,7 @@ defmodule Todo.Server do
 
 
   def init(name) do
-    send(self, :real_init) #send first msg to handle data load
+    send(self(), :real_init) #send first msg to handle data load
     {:ok, {name, nil}}
   end
 

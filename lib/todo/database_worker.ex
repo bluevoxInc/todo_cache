@@ -28,7 +28,7 @@ defmodule Todo.DatabaseWorker do
     # cannot write to file. No sense in continuing if cannot persist data.
     |> File.write!(:erlang.term_to_binary(data))
 
-    IO.inspect(self)
+    IO.inspect(self())
     IO.inspect(": storing #{key}")
 
     {:noreply, db_folder}

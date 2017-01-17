@@ -4,19 +4,39 @@
 
 ## Operation
 
-[wnorman@mrRoboto todo_cache] $ iex -S mix
+## Todo is now an application. Start it by typing either
 
+$ iex -S mix (in an iex shell environment)
+
+or 
+
+$ mix run --no-halt (without an iex shell)
+
+
+[wnorman@mrRoboto todo_cache] $ iex -S mix
 Erlang/OTP 18 [erts-7.2.1] [source] [64-bit] [smp:8:8] [async-threads:10] [hipe] [kernel-poll:false]
 
-Interactive Elixir (1.3.3) - press Ctrl+C to exit (type h() ENTER for help)
+Compiling 11 files (.ex)
+Generated todo app
+Starting process registry
+Starting database worker 1
+Starting database worker 2
+Starting database worker 3
+Starting to-do cache
+Interactive Elixir (1.3.1) - press Ctrl+C to exit (type h() ENTER for help)
 
-$ex(1)> Todo.Supervisor.start_link  
-Starting process registry  
-Starting database worker 1  
-Starting database worker 2  
-Starting database worker 3  
-Starting to-do cache  
-{:ok, #PID<0.114.0>}  
+## get an overview of the application and dependencies that have been started automatically:
+
+iex(1)> :application.which_applications
+[{:todo, 'todo', '0.1.0'}, {:logger, 'logger', '1.3.1'},
+ {:hex, 'hex', '0.14.1'}, {:inets, 'INETS  CXC 138 49', '6.1'},
+ {:ssl, 'Erlang/OTP SSL application', '7.2'},
+ {:public_key, 'Public key infrastructure', '1.1'},
+ {:asn1, 'The Erlang ASN1 compiler version 4.0.1', '4.0.1'},
+ {:crypto, 'CRYPTO', '3.6.2'}, {:mix, 'mix', '1.3.1'}, {:iex, 'iex', '1.3.1'},
+ {:elixir, 'elixir', '1.3.1'}, {:compiler, 'ERTS  CXC 138 10', '6.0.2'},
+ {:stdlib, 'ERTS  CXC 138 10', '2.7'}, {:kernel, 'ERTS  CXC 138 10', '4.1.1'}
+]
 
 #create new DB (./persist/bills_list):  
 iex(2)> bills_list = Todo.Cache.server_process("bills_list")  
