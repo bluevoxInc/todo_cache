@@ -8,8 +8,9 @@ defmodule Todo.Supervisor do
 
   def init(_) do
     processes = [
-      worker(Todo.ProcessRegistry, []),
-      supervisor(Todo.SystemSupervisor, []),
+			supervisor(Todo.Database, ["./persist/"]),
+ 			supervisor(Todo.ServerSupervisor, []),
+ 			worker(Todo.Cache, [])
     ]
     supervise(processes, strategy: :rest_for_one)
   end

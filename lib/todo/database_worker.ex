@@ -54,6 +54,6 @@ defmodule Todo.DatabaseWorker do
   #The :via option expects a module that exports 
   #register_name/2, unregister_name/1, whereis_name/1 and send/2.
   defp via_tuple(worker_id) do
-    {:via, Todo.ProcessRegistry, {:database_worker, worker_id}}
+    {:via, :gproc, {:n, :l, {:database_worker, worker_id}}}
   end
 end

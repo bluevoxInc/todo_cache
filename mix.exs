@@ -15,7 +15,7 @@ defmodule Todo.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     [
-      applications: [:logger],
+      applications: [:logger, :gproc],
       mod: {Todo.Application, []}
     ]
   end
@@ -30,6 +30,9 @@ defmodule Todo.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    [{:meck, "~> 0.8.3", only: :test}]
+    [
+      {:gproc, "~> 0.5.0"},
+      {:meck, "~> 0.8.3", only: :test}
+    ]
   end
 end

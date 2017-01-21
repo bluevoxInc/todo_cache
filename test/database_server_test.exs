@@ -48,11 +48,11 @@ defmodule MockTodo.DatabaseWorker do
   end
 
   def handle_call({:store, _, _}, _, state) do
-    {:reply, self, state}
+    {:reply, self(), state}
   end
 
   def handle_call({:get, _}, _, state) do
-    {:reply, self, state}
+    {:reply, self(), state}
   end
 
   # Needed for test purposes

@@ -2,7 +2,6 @@ defmodule TodoServerTest do
   use ExUnit.Case, async: false
 
   setup do
-    Todo.ProcessRegistry.start_link
     :meck.new(Todo.Database, [:no_link])
     :meck.expect(Todo.Database, :get, fn(_) -> nil end)
     :meck.expect(Todo.Database, :store, fn(_, _) -> :ok end)

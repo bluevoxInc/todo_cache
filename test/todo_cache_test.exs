@@ -2,7 +2,6 @@ defmodule TodoCacheTest do
   use ExUnit.Case, async: false
 
   setup do
-    Todo.ProcessRegistry.start_link
     :meck.new(Todo.Database, [:no_link])
     :meck.expect(Todo.Database, :start_link, fn(_) -> nil end)
     :meck.expect(Todo.Database, :get, fn(_) -> nil end)
