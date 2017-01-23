@@ -10,7 +10,7 @@ use Mix.Config
 
 # You can configure for your application as:
 #
-#     config :todo, key: :value
+config :todo, port: 5454
 #
 # And access this configuration in your application as:
 #
