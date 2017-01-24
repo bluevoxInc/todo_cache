@@ -187,7 +187,7 @@ iex(31)> Todo.ProcessRegistry.whereis_name({:database_worker,3})
 
 $ curl -d '' 'http://localhost:5454/add_entry?list=bills_list&date=20170123&title=Market'
 
-$ curl -d '' 'http://localhost:5454/add_entry?list=bills_list&date=201705&title=Dev%20meeting'
+$ curl -d '' 'http://localhost:5454/add_entry?list=bills_list&date=20170205&title=Dev%20meeting'
 $ curl -X POST 'http://localhost:5454/add_entry?list=bills_list&date=20170129&title=band%20practice'
 
 $ curl 'http://localhost:5454/all_entries?list=bills_list'

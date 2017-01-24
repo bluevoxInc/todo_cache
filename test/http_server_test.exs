@@ -4,13 +4,14 @@ defmodule HttpServerTest do
   setup do
     # This is an integration test of the entire app. Remove the old
     # persisted data, then start the app.
-    #File.rm_rf("./persist/test")
     {:ok, apps} = Application.ensure_all_started(:todo)
 
     # Start HTTPoison
     HTTPoison.start
 
     on_exit fn ->
+      persist = Application.get_env(:todo, :persist)
+      File.rm_rf(persist)
       # stop all applications started above
       Enum.each(apps, &Application.stop/1)
     end

@@ -10,10 +10,12 @@ defmodule Todo.DatabaseWorker do
   end
 
   def store(worker_id, key, data) do
+    Logger.info "DatabaseWorker #{worker_id} writing #{key}"
     GenServer.cast(via_tuple(worker_id), {:store, key, data})
   end
 
   def get(worker_id, key) do
+    Logger.info "DatabaseWorker #{worker_id} reading #{key}"
     GenServer.call(via_tuple(worker_id), {:get, key})
   end
 
@@ -28,9 +30,6 @@ defmodule Todo.DatabaseWorker do
     # Note the !. We need to fast fail and 'Let it crash' if we
     # cannot write to file. No sense in continuing if cannot persist data.
     |> File.write!(:erlang.term_to_binary(data))
-
-    IO.inspect(self())
-    IO.inspect(": storing #{key}")
 
     {:noreply, db_folder}
   end

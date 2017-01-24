@@ -1,8 +1,9 @@
 defmodule Todo.Cache do
   use GenServer
+  require Logger
 
   def start_link do
-    IO.puts "Starting to-do cache"
+    Logger.info "Starting to-do cache"
     GenServer.start_link(__MODULE__, nil, name: :todo_cache)
   end
 
