@@ -1,6 +1,11 @@
 # TodoCache
 
-**Todo_Cache: The Elixir in Action book exercises from chapter 7 through chapter 12.**
+**Todo_Cache (optimized): Code is an extention of Elixir in Action Chapter 11.
+Optimized to maximize transaction performance. 
+
+This is stripped down code which only does reads/writes against a mnesia database.
+The database schema and table is recreated for each session, so don't expect persistance between sessions.
+(See Todo.Database.start_link)
 
 ## Operation
 
@@ -13,184 +18,139 @@ or
 $ mix run --no-halt (without an iex shell)
 
 
-[wnorman@mrRoboto todo_cache] $ iex -S mix
+[wnorman@mrRoboto todo_cache]$ iex -S mix
 Erlang/OTP 18 [erts-7.2.1] [source] [64-bit] [smp:8:8] [async-threads:10] [hipe] [kernel-poll:false]
 
-Compiling 11 files (.ex)
-Generated todo app
-Starting process registry
-Starting database worker 1
-Starting database worker 2
-Starting database worker 3
-Starting to-do cache
-Interactive Elixir (1.3.1) - press Ctrl+C to exit (type h() ENTER for help)
+dets: file "/home/wnorman/elixir/todo_cache/Mnesia.nonode@nohost/todo_lists.DAT" not properly closed, repairing ...
 
-## get an overview of the application and dependencies that have been started automatically:
+10:33:39.588 [info]  Application mnesia exited: :stopped
 
-iex(1)> :application.which_applications
-[{:todo, 'todo', '0.1.0'}, {:logger, 'logger', '1.3.1'},
- {:hex, 'hex', '0.14.1'}, {:inets, 'INETS  CXC 138 49', '6.1'},
- {:ssl, 'Erlang/OTP SSL application', '7.2'},
- {:public_key, 'Public key infrastructure', '1.1'},
- {:asn1, 'The Erlang ASN1 compiler version 4.0.1', '4.0.1'},
- {:crypto, 'CRYPTO', '3.6.2'}, {:mix, 'mix', '1.3.1'}, {:iex, 'iex', '1.3.1'},
- {:elixir, 'elixir', '1.3.1'}, {:compiler, 'ERTS  CXC 138 10', '6.0.2'},
- {:stdlib, 'ERTS  CXC 138 10', '2.7'}, {:kernel, 'ERTS  CXC 138 10', '4.1.1'}
-]
+10:33:39.589 [info]  Starting database worker 1
 
-#create new DB (./persist/bills_list):  
-iex(2)> bills_list = Todo.Cache.server_process("bills_list")  
-Starting to-do server for bills_list  
-PID<0.124.0>  
+10:33:39.589 [info]  Starting database worker 2
+
+10:33:39.590 [info]  Starting database worker 3
+
+10:33:39.592 [info]  Starting to-do cache
+
+10:33:39.594 [info]  Starting todo application web router on port 5454
+Interactive Elixir (1.4.0) - press Ctrl+C to exit (type h() ENTER for help) 
+
+iex(1)> Application.started_applications
+[{:todo, 'todo', '0.2.0'}, {:mnesia, 'MNESIA  CXC 138 12', '4.13.2'},
+ {:plug,
+  'A specification and conveniences for composable modules between web applications',
+  '1.3.0'}, {:mime, 'A MIME type module for Elixir', '1.0.1'},
+  {:cowboy, 'Small, fast, modular HTTP server.', '1.0.4'},
+  {:cowlib, 'Support library for manipulating Web protocols.', '1.0.2'},
+  {:ranch, 'Socket acceptor pool for TCP protocols.', '1.2.1'},
+  {:gproc, 'GPROC', '0.5.0'}, {:logger, 'logger', '1.4.0'},
+  {:hex, 'hex', '0.15.0'}, {:inets, 'INETS  CXC 138 49', '6.1'},
+  {:ssl, 'Erlang/OTP SSL application', '7.2'},
+  {:public_key, 'Public key infrastructure', '1.1'},
+  {:asn1, 'The Erlang ASN1 compiler version 4.0.1', '4.0.1'},
+  {:crypto, 'CRYPTO', '3.6.2'}, {:mix, 'mix', '1.4.0'}, {:iex, 'iex', '1.4.0'},
+  {:elixir, 'elixir', '1.4.0'}, {:compiler, 'ERTS  CXC 138 10', '6.0.2'},
+  {:stdlib, 'ERTS  CXC 138 10', '2.7'}, {:kernel, 'ERTS  CXC 138 10', '4.1.1'}]
+
+#create new DB (./Mnesia.nonode@nohost):  
+iex(2)> bills_list = Todo.Cache.server_process("bills_list")
+
+10:38:05.701 [info]  Starting to-do server for bills_list
+#PID<0.357.0>
+
 
 #same pid expected:  
-iex(3)> bills_list = Todo.Cache.server_process("bills_list")  
-PID<0.124.0>  
+iex(3)> bills_list = Todo.Cache.server_process("bills_list")
+#PID<0.357.0>
 
 #kill process, supervisor retarts:  
-iex(4)> Process.exit(bills_list, :kill)  
-Starting to-do server for bills_list  
-true  
+iex(4)> Process.exit(bills_list, :kill)
+true
+
+10:40:47.339 [info]  Starting to-do server for bills_list
 
 #new pid expected:  
-iex(5)> bills_list = Todo.Cache.server_process("bills_list")  
-PID<0.135.0>  
+iex(5)> bills_list = Todo.Cache.server_process("bills_list")
+#PID<0.362.0>
 
 #add entries:  
-iex(6)> Todo.Server.add_entry(bills_list, %{date: {2016, 12, 25}, title: "Christmas"})  
-:ok  
-PID<0.118.0>  
-": storing bills_list"  
+iex(6)> Todo.Server.add_entry(bills_list, %{date: {2017, 2, 1}, title: "Shopping"})
+:ok
+iex(7)> Todo.Server.add_entry(bills_list, %{date: {2017, 2, 1}, title: "movie"})   
+:ok
 
-iex(7)> Todo.Server.add_entry(bills_list, %{date: {2017, 1, 1}, title: "New Year"})  
-:ok  
-PID<0.118.0>  
-": storing bills_list"  
+#read entries
+iex(8)> Todo.Server.entries(bills_list, {2017, 2, 1})
+[%{date: {2017, 2, 1}, title: "movie"},
+ %{date: {2017, 2, 1}, title: "Shopping"}]
 
-#list entries:  
-iex(8)> Todo.Server.all_entries(bills_list)  
-[%{date: {2016, 12, 25}, id: 1, title: "Christmas"},  
- %{date: {2017, 1, 1}, id: 2, title: "New Year"}]  
-
-iex(9)> Todo.Server.add_entry(bills_list, %{date: {2016, 12, 21}, title: "School"})  
-:ok  
-PID<0.118.0>  
-": storing bills_list"  
-
-iex(10)> Todo.Server.all_entries(bills_list)                                    [%{date: {2016, 12, 25}, id: 1, title: "Christmas"},  
- %{date: {2017, 1, 1}, id: 2, title: "New Year"},  
-  %{date: {2016, 12, 21}, id: 3, title: "School"}]  
-
-#delete entry  
-iex(11)> Todo.Server.delete_entry(bills_list, 3)  
-:ok  
-PID<0.118.0>  
-": storing bills_list"  
-
-iex(12)> Todo.Server.all_entries(bills_list)      
-[%{date: {2016, 12, 25}, id: 1, title: "Christmas"},  
- %{date: {2017, 1, 1}, id: 2, title: "New Year"}]  
-
-#find pid given DB name:  
-iex(13)> Todo.Server.whereis("bills_list")    
-PID<0.135.0>  
-
-#create new DB/list:  
-iex(14)> alices_list = Todo.Cache.server_process("alices_list")                 Starting to-do server for alices_list  
-PID<0.154.0>  
-
-iex(15)> Todo.Server.whereis("alices_list")                      
-PID<0.154.0>  
-
-iex(16)> Todo.Server.add_entry(alices_list, %{date: {2016, 12, 22}, title: "Dentist"})       
-:ok  
-PID<0.118.0>  
-": storing alices_list"  
-
-iex(17)> Todo.Server.add_entry(alices_list, %{date: {2016, 12, 23}, title: "Movie"})    
-:ok  
-PID<0.118.0>  
-": storing alices_list"  
-
-iex(18)> Todo.Server.add_entry(alices_list, %{date: {2016, 12, 23}, title: "Shopping"})  
-:ok  
-PID<0.118.0>  
-": storing alices_list"  
-
-iex(19)> Todo.Server.all_entries(alices_list)                                   [%{date: {2016, 12, 22}, id: 1, title: "Dentist"},  
- %{date: {2016, 12, 23}, id: 2, title: "Movie"},  
-  %{date: {2016, 12, 23}, id: 3, title: "Shopping"}]  
-
-#update entry  
-iex(20)> Todo.Server.update_entry(alices_list, %{date: {2016, 12, 23}, id: 3, title: "Shopping/Movie"})  
-:ok  
-PID<0.118.0>  
-": storing alices_list"  
-
-iex(21)> Todo.Server.all_entries(alices_list)                                   [%{date: {2016, 12, 22}, id: 1, title: "Dentist"},  
- %{date: {2016, 12, 23}, id: 2, title: "Movie"},  
-  %{date: {2016, 12, 23}, id: 3, title: "Shopping/Movie"}]  
-
-#modify entry date:  
-iex(22)> Todo.Server.update_entry(alices_list, %{date: {2016, 12, 24}, id: 3, title: "Shopping/Movie"})  
-:ok  
-PID<0.118.0>  
-": storing alices_list"  
-
-iex(23)> Todo.Server.all_entries(alices_list)                                   [%{date: {2016, 12, 22}, id: 1, title: "Dentist"},  
- %{date: {2016, 12, 23}, id: 2, title: "Movie"},  
-  %{date: {2016, 12, 24}, id: 3, title: "Shopping/Movie"}]  
-
-#crash alice's Todo.Server and see it restart:  
-iex(24)> Todo.Server.update_entry(alices_list, %{date: {2016, 12, 24}, title: "Shopping/Movie"})         
-Starting to-do server for alices_list  
-:ok  
-
-#error message logged here:  
-iex(25)>   
-03:50:34.045 [error] GenServer {:todo_server, "alices_list"} terminating  
-** (KeyError) key :id not found in: %{date: {2016, 12, 24}, title: "Shopping/Movie"}  
-    (todo) lib/todo/list.ex:48: Todo.List.update_entry/2  
-    (todo) lib/todo/server.ex:60: Todo.Server.handle_cast/2  
-    (stdlib) gen_server.erl:615: :gen_server.try_dispatch/4  
-    (stdlib) gen_server.erl:681: :gen_server.handle_msg/5  
-    (stdlib) proc_lib.erl:240: :proc_lib.init_p_do_apply/3  
-  Last message: {:"$gen_cast", {:update_entry, %{date: {2016, 12, 24}, title: "Shopping/Movie"}}}  
-  State: {"alices_list", %Todo.List{auto_id: 4, entries: %{1 => %{date: {2016, 12, 22}, id: 1, title: "Dentist"}, 2 => %{date: {2016, 12, 23}, id: 2, title: "Movie"}, 3 => %{date: {2016, 12, 24}, id: 3, title: "Shopping/Movie"}}}}  
-
-    nil  
-
-#where is the new alices_list?  
-iex(26)> alices_list = Todo.Server.whereis("alices_list")  
-PID<0.184.0>              
-
-#show it is functioning properly by listing the last state:  
-iex(27)> Todo.Server.all_entries(alices_list)                                   [%{date: {2016, 12, 22}, id: 1, title: "Dentist"},  
-     %{date: {2016, 12, 23}, id: 2, title: "Movie"},  
-     %{date: {2016, 12, 24}, id: 3, title: "Shopping/Movie"}]  
-
-
-# Let's see how the Process Registry is stashing processes:
-iex(28)> Todo.ProcessRegistry.whereis_name({:todo_server,"bills_list"})
-#PID<0.135.0>
- 
-iex(29)> Todo.ProcessRegistry.whereis_name({:database_worker,1})
-#PID<0.129.0>
-
-iex(30)> Todo.ProcessRegistry.whereis_name({:database_worker,2})
-#PID<0.130.0>
- 
-iex(31)> Todo.ProcessRegistry.whereis_name({:database_worker,3})
-#PID<0.131.0>
 
 *************************************** WEB **************************
 
 $ curl -d '' 'http://localhost:5454/add_entry?list=bills_list&date=20170123&title=Market'
+OK
 
 $ curl -d '' 'http://localhost:5454/add_entry?list=bills_list&date=20170205&title=Dev%20meeting'
-$ curl -X POST 'http://localhost:5454/add_entry?list=bills_list&date=20170129&title=band%20practice'
+OK
 
-$ curl 'http://localhost:5454/all_entries?list=bills_list'
+$ curl -X POST 'http://localhost:5454/add_entry?list=bills_list&date=20170205&title=band%20practice'
+OK
 
 $ curl 'http://localhost:5454/entries?list=bills_list&date=20170123'
+2017-1-23 Market
+
+$ curl 'http://localhost:5454/entries?list=bills_list&date=20170205'
+2017-2-5 band practice
+2017-2-5 Dev meeting
+
+****************************************** TEST ************************
+$ mix test
+dets: file "/home/wnorman/elixir/todo_cache/Mnesia.nonode@nohost/todo_lists.DAT" not properly closed, repairing ...
+
+11:01:07.686 [info]  Starting database worker 1
+
+11:01:07.686 [info]  Starting database worker 2
+
+11:01:07.686 [info]  Starting database worker 3
+
+11:01:07.690 [info]  Application mnesia exited: :stopped
+
+11:01:07.693 [info]  Starting to-do cache
+
+11:01:07.695 [info]  Starting todo application web router on port 5454
+
+11:01:07.739 [info]  Application todo exited: :stopped
+.
+11:01:08.082 [info]  Application mnesia exited: :stopped
+
+11:01:08.240 [info]  Starting database worker 1
+
+11:01:08.240 [info]  Starting database worker 2
+
+11:01:08.240 [info]  Starting database worker 3
+
+11:01:08.240 [info]  Starting to-do cache
+
+11:01:08.240 [info]  Starting todo application web router on port 5454
+
+11:01:08.374 [info]  Starting to-do server for test
+
+11:01:08.384 [info]  Application todo exited: :stopped
+.
+11:01:08.439 [info]  Starting to-do server for test_list
+.
+11:01:08.484 [info]  Starting to-do cache
+
+11:01:08.484 [info]  Starting to-do server for bobs_list
+
+11:01:08.485 [info]  Starting to-do server for alices_list
+.
+11:01:08.588 [info]  Application mnesia exited: :stopped
+.
+11:01:08.768 [info]  Starting database worker 1
+.
+
+Finished in 1.1 seconds
+6 tests, 0 failures
 

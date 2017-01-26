@@ -19,3 +19,4 @@ erl_crash.dump
 /dev-persist
 /persist
 /test-persist
+/Mnesia.nonode@nohost

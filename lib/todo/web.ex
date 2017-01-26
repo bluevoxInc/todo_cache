@@ -18,14 +18,6 @@ defmodule Todo.Web do
     Plug.Conn.send_resp(conn, 200, "world")
   end
 
-  # curl -d '' 'http://localhost:5454/all_entries?list=bill's list'
-  get "/all_entries" do
-    conn
-    |> Plug.Conn.fetch_query_params
-    |> fetch_all_entries
-    |> respond
-  end
-
   # curl -d '' 'http://localhost:5454/entries?list=bill's list&date=20170123&title=Dentist'
   get "/entries" do
     conn
@@ -42,27 +34,12 @@ defmodule Todo.Web do
     |> respond
   end
 
-  defp fetch_all_entries(conn) do
-    Plug.Conn.assign(
-      conn,
-      :response,
-      all_entries(conn.params["list"])
-    )
-  end
-
   defp fetch_entries(conn) do
     Plug.Conn.assign(
       conn, 
       :response, 
       entries(conn.params["list"], parse_date(conn.params["date"]))
     )
-  end
-
-  defp all_entries(list_name) do
-    list_name
-    |> Todo.Cache.server_process
-    |> Todo.Server.all_entries
-    |> format_entries
   end
 
   defp entries(list_name, date) do

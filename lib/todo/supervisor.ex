@@ -2,17 +2,13 @@ defmodule Todo.Supervisor do
   use Supervisor
 
   def start_link do
-    case Application.get_env(:todo, :persist) do
-      nil -> raise "Persist directory not specified"
-      persist_dir ->
-        Supervisor.start_link(__MODULE__, persist_dir, name: :todo_supervisor)
-    end
+    Supervisor.start_link(__MODULE__, nil, name: :todo_supervisor)
   end
 
 
-  def init(persist_dir) do
+  def init(_) do
     processes = [
-			supervisor(Todo.Database, [persist_dir]),
+			supervisor(Todo.Database, []),
  			supervisor(Todo.ServerSupervisor, []),
  			worker(Todo.Cache, [])
     ]
