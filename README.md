@@ -18,139 +18,136 @@ or
 $ mix run --no-halt (without an iex shell)
 
 
-[wnorman@mrRoboto todo_cache]$ iex -S mix
-Erlang/OTP 18 [erts-7.2.1] [source] [64-bit] [smp:8:8] [async-threads:10] [hipe] [kernel-poll:false]
+[wnorman@mrRoboto todo_cache]$ iex -S mix  
+Erlang/OTP 18 [erts-7.2.1] [source] [64-bit] [smp:8:8] [async-threads:10] [hipe] [kernel-poll:false]  
 
-dets: file "/home/wnorman/elixir/todo_cache/Mnesia.nonode@nohost/todo_lists.DAT" not properly closed, repairing ...
+10:33:39.588 [info]  Application mnesia exited: :stopped  
 
-10:33:39.588 [info]  Application mnesia exited: :stopped
+10:33:39.589 [info]  Starting database worker 1  
 
-10:33:39.589 [info]  Starting database worker 1
+10:33:39.589 [info]  Starting database worker 2  
 
-10:33:39.589 [info]  Starting database worker 2
+10:33:39.590 [info]  Starting database worker 3  
 
-10:33:39.590 [info]  Starting database worker 3
+10:33:39.592 [info]  Starting to-do cache  
 
-10:33:39.592 [info]  Starting to-do cache
+10:33:39.594 [info]  Starting todo application web router on port 5454  
+Interactive Elixir (1.4.0) - press Ctrl+C to exit (type h() ENTER for help)  
 
-10:33:39.594 [info]  Starting todo application web router on port 5454
-Interactive Elixir (1.4.0) - press Ctrl+C to exit (type h() ENTER for help) 
-
-iex(1)> Application.started_applications
-[{:todo, 'todo', '0.2.0'}, {:mnesia, 'MNESIA  CXC 138 12', '4.13.2'},
- {:plug,
-  'A specification and conveniences for composable modules between web applications',
-  '1.3.0'}, {:mime, 'A MIME type module for Elixir', '1.0.1'},
-  {:cowboy, 'Small, fast, modular HTTP server.', '1.0.4'},
-  {:cowlib, 'Support library for manipulating Web protocols.', '1.0.2'},
-  {:ranch, 'Socket acceptor pool for TCP protocols.', '1.2.1'},
-  {:gproc, 'GPROC', '0.5.0'}, {:logger, 'logger', '1.4.0'},
-  {:hex, 'hex', '0.15.0'}, {:inets, 'INETS  CXC 138 49', '6.1'},
-  {:ssl, 'Erlang/OTP SSL application', '7.2'},
-  {:public_key, 'Public key infrastructure', '1.1'},
-  {:asn1, 'The Erlang ASN1 compiler version 4.0.1', '4.0.1'},
-  {:crypto, 'CRYPTO', '3.6.2'}, {:mix, 'mix', '1.4.0'}, {:iex, 'iex', '1.4.0'},
-  {:elixir, 'elixir', '1.4.0'}, {:compiler, 'ERTS  CXC 138 10', '6.0.2'},
-  {:stdlib, 'ERTS  CXC 138 10', '2.7'}, {:kernel, 'ERTS  CXC 138 10', '4.1.1'}]
+iex(1)> Application.started_applications  
+[{:todo, 'todo', '0.2.0'}, {:mnesia, 'MNESIA  CXC 138 12', '4.13.2'},  
+ {:plug,  
+  'A specification and conveniences for composable modules between web applications',  
+  '1.3.0'}, {:mime, 'A MIME type module for Elixir', '1.0.1'},  
+  {:cowboy, 'Small, fast, modular HTTP server.', '1.0.4'},  
+  {:cowlib, 'Support library for manipulating Web protocols.', '1.0.2'},  
+  {:ranch, 'Socket acceptor pool for TCP protocols.', '1.2.1'},  
+  {:gproc, 'GPROC', '0.5.0'}, {:logger, 'logger', '1.4.0'},  
+  {:hex, 'hex', '0.15.0'}, {:inets, 'INETS  CXC 138 49', '6.1'},  
+  {:ssl, 'Erlang/OTP SSL application', '7.2'},  
+  {:public_key, 'Public key infrastructure', '1.1'},  
+  {:asn1, 'The Erlang ASN1 compiler version 4.0.1', '4.0.1'},  
+  {:crypto, 'CRYPTO', '3.6.2'}, {:mix, 'mix', '1.4.0'}, {:iex, 'iex', '1.4.0'},  
+  {:elixir, 'elixir', '1.4.0'}, {:compiler, 'ERTS  CXC 138 10', '6.0.2'},  
+  {:stdlib, 'ERTS  CXC 138 10', '2.7'}, {:kernel, 'ERTS  CXC 138 10', '4.1.1'}]  
 
 #create new DB (./Mnesia.nonode@nohost):  
-iex(2)> bills_list = Todo.Cache.server_process("bills_list")
+iex(2)> bills_list = Todo.Cache.server_process("bills_list")  
 
-10:38:05.701 [info]  Starting to-do server for bills_list
-#PID<0.357.0>
+10:38:05.701 [info]  Starting to-do server for bills_list  
+#PID<0.357.0>  
 
 
 #same pid expected:  
-iex(3)> bills_list = Todo.Cache.server_process("bills_list")
-#PID<0.357.0>
+iex(3)> bills_list = Todo.Cache.server_process("bills_list")  
+#PID<0.357.0>  
 
 #kill process, supervisor retarts:  
-iex(4)> Process.exit(bills_list, :kill)
-true
+iex(4)> Process.exit(bills_list, :kill)  
+true  
 
-10:40:47.339 [info]  Starting to-do server for bills_list
+10:40:47.339 [info]  Starting to-do server for bills_list  
 
 #new pid expected:  
-iex(5)> bills_list = Todo.Cache.server_process("bills_list")
-#PID<0.362.0>
+iex(5)> bills_list = Todo.Cache.server_process("bills_list")  
+#PID<0.362.0>  
 
 #add entries:  
-iex(6)> Todo.Server.add_entry(bills_list, %{date: {2017, 2, 1}, title: "Shopping"})
-:ok
+iex(6)> Todo.Server.add_entry(bills_list, %{date: {2017, 2, 1}, title: "Shopping"})  
+:ok  
 iex(7)> Todo.Server.add_entry(bills_list, %{date: {2017, 2, 1}, title: "movie"})   
-:ok
+:ok  
 
-#read entries
-iex(8)> Todo.Server.entries(bills_list, {2017, 2, 1})
-[%{date: {2017, 2, 1}, title: "movie"},
- %{date: {2017, 2, 1}, title: "Shopping"}]
+#read entries  
+iex(8)> Todo.Server.entries(bills_list, {2017, 2, 1})    
+[%{date: {2017, 2, 1}, title: "movie"},  
+ %{date: {2017, 2, 1}, title: "Shopping"}]  
 
 
 *************************************** WEB **************************
 
-$ curl -d '' 'http://localhost:5454/add_entry?list=bills_list&date=20170123&title=Market'
+$ curl -d '' 'http://localhost:5454/add_entry?list=bills_list&date=20170123&title=Market'  
 OK
 
-$ curl -d '' 'http://localhost:5454/add_entry?list=bills_list&date=20170205&title=Dev%20meeting'
+$ curl -d '' 'http://localhost:5454/add_entry?list=bills_list&date=20170205&title=Dev%20meeting'  
 OK
 
-$ curl -X POST 'http://localhost:5454/add_entry?list=bills_list&date=20170205&title=band%20practice'
+$ curl -X POST 'http://localhost:5454/add_entry?list=bills_list&date=20170205&title=band%20practice'  
 OK
 
-$ curl 'http://localhost:5454/entries?list=bills_list&date=20170123'
-2017-1-23 Market
+$ curl 'http://localhost:5454/entries?list=bills_list&date=20170123'  
+2017-1-23 Market  
 
-$ curl 'http://localhost:5454/entries?list=bills_list&date=20170205'
-2017-2-5 band practice
-2017-2-5 Dev meeting
+$ curl 'http://localhost:5454/entries?list=bills_list&date=20170205'  
+2017-2-5 band practice  
+2017-2-5 Dev meeting  
 
-****************************************** TEST ************************
-$ mix test
-dets: file "/home/wnorman/elixir/todo_cache/Mnesia.nonode@nohost/todo_lists.DAT" not properly closed, repairing ...
+****************************************** TEST ************************  
+$ mix test  
 
-11:01:07.686 [info]  Starting database worker 1
+11:01:07.686 [info]  Starting database worker 1  
 
-11:01:07.686 [info]  Starting database worker 2
+11:01:07.686 [info]  Starting database worker 2  
 
-11:01:07.686 [info]  Starting database worker 3
+11:01:07.686 [info]  Starting database worker 3  
 
-11:01:07.690 [info]  Application mnesia exited: :stopped
+11:01:07.690 [info]  Application mnesia exited: :stopped  
 
-11:01:07.693 [info]  Starting to-do cache
+11:01:07.693 [info]  Starting to-do cache  
 
-11:01:07.695 [info]  Starting todo application web router on port 5454
+11:01:07.695 [info]  Starting todo application web router on port 5454  
 
-11:01:07.739 [info]  Application todo exited: :stopped
+11:01:07.739 [info]  Application todo exited: :stopped  
 .
-11:01:08.082 [info]  Application mnesia exited: :stopped
+11:01:08.082 [info]  Application mnesia exited: :stopped  
 
-11:01:08.240 [info]  Starting database worker 1
+11:01:08.240 [info]  Starting database worker 1  
 
-11:01:08.240 [info]  Starting database worker 2
+11:01:08.240 [info]  Starting database worker 2  
 
-11:01:08.240 [info]  Starting database worker 3
+11:01:08.240 [info]  Starting database worker 3  
 
-11:01:08.240 [info]  Starting to-do cache
+11:01:08.240 [info]  Starting to-do cache  
 
-11:01:08.240 [info]  Starting todo application web router on port 5454
+11:01:08.240 [info]  Starting todo application web router on port 5454  
 
-11:01:08.374 [info]  Starting to-do server for test
+11:01:08.374 [info]  Starting to-do server for test  
 
-11:01:08.384 [info]  Application todo exited: :stopped
+11:01:08.384 [info]  Application todo exited: :stopped  
 .
-11:01:08.439 [info]  Starting to-do server for test_list
+11:01:08.439 [info]  Starting to-do server for test_list  
 .
-11:01:08.484 [info]  Starting to-do cache
+11:01:08.484 [info]  Starting to-do cache  
 
-11:01:08.484 [info]  Starting to-do server for bobs_list
+11:01:08.484 [info]  Starting to-do server for bobs_list  
 
-11:01:08.485 [info]  Starting to-do server for alices_list
+11:01:08.485 [info]  Starting to-do server for alices_list  
 .
-11:01:08.588 [info]  Application mnesia exited: :stopped
+11:01:08.588 [info]  Application mnesia exited: :stopped  
 .
-11:01:08.768 [info]  Starting database worker 1
+11:01:08.768 [info]  Starting database worker 1  
 .
 
-Finished in 1.1 seconds
-6 tests, 0 failures
+Finished in 1.1 seconds  
+6 tests, 0 failures  
 
