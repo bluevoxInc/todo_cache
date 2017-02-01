@@ -18,8 +18,7 @@ defmodule DatabaseServerTest do
     # NOTE: return values come from MockTodo.DatabaseWorker, 
     # which returns self for store and get calls.
     assert(Todo.Database.store(1, :a) == Todo.Database.store(1, :a))
-    assert(Todo.Database.get(1) == Todo.Database.store(1, :a))
-    assert(Todo.Database.store(2, :a) != Todo.Database.store(1, :a))
+    assert(Todo.Database.get(1) == :a)
   end
 end
 
@@ -47,12 +46,13 @@ defmodule MockTodo.DatabaseWorker do
     {:ok, state}
   end
 
-  def handle_call({:store, _, _}, _, state) do
-    {:reply, self(), state}
+  def handle_call({:store, key, data}, _, state) do
+    Process.put(key, data)
+    {:reply, :ok, state}
   end
 
-  def handle_call({:get, _}, _, state) do
-    {:reply, self(), state}
+  def handle_call({:get, key}, _, state) do
+    {:reply, Process.get(key), state}
   end
 
   # Needed for test purposes

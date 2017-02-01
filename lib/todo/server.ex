@@ -7,16 +7,12 @@ defmodule Todo.Server do
     GenServer.start_link(
       Todo.Server, 
       list_name, 
-      name: via_tuple(list_name)
+      name: {:global, {:todo_server, list_name}}
     )
   end
 
-  defp via_tuple(name) do
-    {:via, :gproc, {:n, :l, {:todo_server, name}}}
-  end
-
-  def whereis(name) do
-    :gproc.whereis_name({:n, :l, {:todo_server, name}})
+  def whereis(list_name) do
+    :global.whereis_name({:todo_server, list_name})
   end
 
   def add_entry(todo_server, new_entry) do

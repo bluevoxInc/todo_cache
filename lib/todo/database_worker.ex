@@ -10,8 +10,8 @@ defmodule Todo.DatabaseWorker do
   end
 
   def store(worker_id, key, data) do
-    Logger.info "DatabaseWorker #{worker_id} writing #{key}"
-    GenServer.cast(via_tuple(worker_id), {:store, key, data})
+    Logger.info "#{node()}--DatabaseWorker #{worker_id} writing #{key}"
+    GenServer.call(via_tuple(worker_id), {:store, key, data})
   end
 
   def get(worker_id, key) do
@@ -20,18 +20,23 @@ defmodule Todo.DatabaseWorker do
   end
 
   def init(db_folder) do
+    # Node name is used to determine the database folder. This allows
+    # starting multiple nodes from the same root folder without data clash.
+    [name_prefix, _] = "#{node()}" |> String.split("@")
+    db_folder = "#{db_folder}/#{name_prefix}/"
     File.mkdir_p(db_folder)
+
     {:ok, db_folder}
   end
 
-  def handle_cast({:store, key, data}, db_folder) do
+  def handle_call({:store, key, data}, _, db_folder) do
     file_name(db_folder, key)
 
     # Note the !. We need to fast fail and 'Let it crash' if we
     # cannot write to file. No sense in continuing if cannot persist data.
     |> File.write!(:erlang.term_to_binary(data))
 
-    {:noreply, db_folder}
+    {:reply, :ok, db_folder}
   end
 
   def handle_call({:get, key}, _, db_folder) do

@@ -9,13 +9,11 @@ defmodule Todo.Supervisor do
     end
   end
 
-
   def init(persist_dir) do
     processes = [
 			supervisor(Todo.Database, [persist_dir]),
- 			supervisor(Todo.ServerSupervisor, []),
- 			worker(Todo.Cache, [])
+ 			supervisor(Todo.ServerSupervisor, [])
     ]
-    supervise(processes, strategy: :rest_for_one)
+    supervise(processes, strategy: :one_for_one)
   end
 end

@@ -194,3 +194,29 @@ $ curl 'http://localhost:5454/all_entries?list=bills_list'
 
 $ curl 'http://localhost:5454/entries?list=bills_list&date=20170123'
 
+*****************************************Clusters *********************
+terminal 1:
+
+$ iex --sname node1@localhost -S mix
+
+terminal 2:
+
+$ iex --erl "-todo port 5555" --sname node2@localhost -S mix
+
+client terminal
+
+$ curl -d "" "http://localhost:5454/add_entry?list=alice&date=20170131&title=Dentist"
+
+$ curl "http://localhost:5555/entries?list=alice&d&date=20170131"
+2017-1-31 Dentist
+
+$ curl -d "" "http://localhost:5555/add_entry?list=alice&date=20170131&title=Movies"
+
+$ curl "http://5454/entries?list=alice&d&date=20170131"
+2017-1-31 Dentist
+2017-1-31 Movies
+
+kill node1@localhost
+$ curl "http://5555/entries?list=alice&d&date=20170131"
+2017-1-31 Dentist
+2017-1-31 Movies
