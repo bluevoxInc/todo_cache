@@ -12,7 +12,8 @@ defmodule Todo.Supervisor do
   def init(persist_dir) do
     processes = [
 			supervisor(Todo.Database, [persist_dir]),
- 			supervisor(Todo.ServerSupervisor, [])
+ 			supervisor(Todo.ServerSupervisor, []),
+      worker(Todo.Cluster, [])
     ]
     supervise(processes, strategy: :one_for_one)
   end

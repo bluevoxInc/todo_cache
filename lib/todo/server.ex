@@ -35,7 +35,6 @@ defmodule Todo.Server do
     GenServer.call(todo_server, {:all_entries})
   end
 
-
   def init(name) do
     send(self(), :real_init) #send first msg to handle data load
     {:ok, {name, nil}}
