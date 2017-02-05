@@ -151,10 +151,22 @@ $ mix test
 Finished in 1.1 seconds  
 6 tests, 0 failures  
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%--Mnesia Cluster--%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$ iex --sname n1@mrRoboto --cookie mycookie --erl "-config sys.config" -S mix
+$ iex --sname n2@mrRoboto --cookie mycookie --erl "-todo port 5555 -config sys.config" -S mix
+$ iex --sname n3@quantumDog --cookie mycookie --erl "-config sys.config" -S mix
+$ iex --sname n4@quantumDog --cookie mycookie --erl "-todo port 5555 -config sys.config" -S mix
+
+--ensure all nodes talking to each other:
+iex(n1@mrRoboto)1> nodes = [node() | Node.list]
+[:n1@mrRoboto, :n2@mrRoboto, :n3@quantumDog, :n4@quantumDog]
+
 # initialize mnesia database
-:mnesia.stop  #stop to create a schema
-:mnesia.create_schema([node()])
-:mnesia.start
+:rpc.multicall(:mnesia, :stop, [])
+:mnesia.create_schema(nodes)
+:rpc.multicall(:mnesia, :start, [])
+{[:ok, :ok, :ok, :ok], []}
+
 :mnesia.create_table(:todo_lists, [attributes: [:name, :list], disc_only_copies: [no>
 :ok = :mnesia.wait_for_tables([:todo_lists], 5000)
 
