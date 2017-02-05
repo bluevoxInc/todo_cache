@@ -2,6 +2,7 @@ defmodule Todo.List do
   # The data structure has changed so that entries are keyed by date.
   # This allows quick fetch of data by date and reduces the amount 
   # of data written back to the database on each change.
+  # %todo_list{days: %{entry.date: [entries]}}
   defstruct days: Map.new, size: 0
 
   def new(entries \\ []) do

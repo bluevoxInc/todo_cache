@@ -151,3 +151,10 @@ $ mix test
 Finished in 1.1 seconds  
 6 tests, 0 failures  
 
+# initialize mnesia database
+:mnesia.stop  #stop to create a schema
+:mnesia.create_schema([node()])
+:mnesia.start
+:mnesia.create_table(:todo_lists, [attributes: [:name, :list], disc_only_copies: [no>
+:ok = :mnesia.wait_for_tables([:todo_lists], 5000)
+

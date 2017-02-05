@@ -30,11 +30,11 @@ defmodule Todo.DatabaseWorker do
     #
     # This done by internally spawning another process to perform storage.
     # While the worker is doing its job, all incomming requests will be 
-    # queued. When the storage process finishes, an new storage process
+    # queued. When the storage process finishes, a new storage process
     # will be spawned and the queue will be stored to the DB in a single 
     # pass. (The caveat here is if the storage process or the database
     # worker instance should crash, the requests in the queue -- an 
-    # indeterminal number -- would be lost. So this is a performant solution
+    # indeterminate number -- would be lost. So this is a performant solution
     # but one at the expense of data integrity.)
     #
     # This is beneficial, because storing N items in a single pass is
@@ -49,7 +49,7 @@ defmodule Todo.DatabaseWorker do
       :ok,
       %{
         store_job: nil,           #PID of the storing job
-        store_queue: Map.new # Queue of incoming items to store
+        store_queue: Map.new      #Queue of incoming items to store
       }
     }
   end
@@ -73,7 +73,7 @@ defmodule Todo.DatabaseWorker do
 
     data = case read_result do
       {:atomic, [{:todo_lists, ^key, list}]} -> list
-      _ -> nil
+      _ -> []
     end
 
     {:reply, data, state}
