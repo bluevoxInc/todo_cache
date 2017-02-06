@@ -194,3 +194,39 @@ and see:
 08:08:03.593 [error] Mnesia(:n1@mrRoboto): ** ERROR ** mnesia_event got {inconsistent_database, :starting_partitioned_network, :n4@quantumDog}
 
 Data now consistent.
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&--libring--&&&&&&&&&&&&&&&&&&&&&&&&
+Consistent hashing for locating processes. This is just a basic ring implementation,
+which does nothing in the way of automatically managing processes when
+the topology changes:
+
+iex(n1@mrRoboto)12> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "bills_list"})
+:n1@mrRoboto
+
+iex(n1@mrRoboto)13> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "alices_list"})
+:n2@mrRoboto
+
+iex(n1@mrRoboto)24> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "normans_list"})
+:n3@quantumDog
+
+iex(n1@mrRoboto)25> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "obamas_list"}) 
+:n4@quantumDog
+
+Kill :n4@quantumDog process and see that only the keys for :n4 are relocated.
+iex(n1@mrRoboto)12> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "bills_list"})
+:n1@mrRoboto
+
+iex(n1@mrRoboto)13> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "alices_list"})
+:n2@mrRoboto
+
+iex(n1@mrRoboto)24> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "normans_list"})
+:n3@quantumDog
+
+iex(n1@mrRoboto)25> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "obamas_list"}) 
+:n3@quantumDog
+
+Recovery from a network partition however is another story. Here the ring remains unaware that the missing nodes
+are back. 
+
+
+
