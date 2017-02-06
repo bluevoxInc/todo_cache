@@ -21,7 +21,7 @@ defmodule Todo.List do
   end
 
   def entries(%Todo.List{days: days}, date) do
-    Map.get(days, date, [])
+    Map.get(days, date)
   end
 
   # This function called to restore entries from the database.

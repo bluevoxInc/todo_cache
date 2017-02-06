@@ -68,12 +68,13 @@ defmodule Todo.DatabaseWorker do
     # Always read from the database. Looking up data in the queue should
     # not be done because the data is not actually stored and might not
     # actually end up in the database.
+#IO.inspect key
     read_result = :mnesia.transaction(fn -> 
       :mnesia.read({:todo_lists, key}) end)
 
     data = case read_result do
       {:atomic, [{:todo_lists, ^key, list}]} -> list
-      _ -> []
+      _ -> nil
     end
 
     {:reply, data, state}
@@ -135,6 +136,8 @@ defmodule Todo.DatabaseWorker do
 
     #Reply to clients:
     for {_, {from, _}} <- store_queue do
+#IO.inspect key
+#IO.inspect data
       GenServer.reply(from, :ok)
     end
   end

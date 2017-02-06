@@ -170,3 +170,9 @@ iex(n1@mrRoboto)1> nodes = [node() | Node.list]
 :mnesia.create_table(:todo_lists, [attributes: [:name, :list], disc_only_copies: [no>
 :ok = :mnesia.wait_for_tables([:todo_lists], 5000)
 
+--command line read transaction:
+iex(n1@mrRoboto)3> :mnesia.transaction(fn ->                                     
+...(n1@mrRoboto)3> :mnesia.read({:todo_lists, {"bills_list", {2017, 1, 23}}}) end)
+{:atomic,
+ [{:todo_lists, {"bills_list", {2017, 1, 23}},
+    [%{date: {2017, 1, 23}, title: "Market"}]}]}
