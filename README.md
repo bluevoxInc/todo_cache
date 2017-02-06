@@ -176,3 +176,21 @@ iex(n1@mrRoboto)3> :mnesia.transaction(fn ->
 {:atomic,
  [{:todo_lists, {"bills_list", {2017, 1, 23}},
     [%{date: {2017, 1, 23}, title: "Market"}]}]}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%--Partitioned Network--%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Closed lid on mrRoboto, add record on quantumDog:
+Open lid, data inconsistent.
+
+Restart:
+
+$ iex --sname n1@mrRoboto --cookie mycookie --erl "-config sys.config" -S mix
+
+and see:
+
+08:08:03.592 [error] Mnesia(:n1@mrRoboto): ** ERROR ** mnesia_event got {inconsistent_database, :starting_partitioned_network, :n3@quantumDog}
+
+
+08:08:03.593 [error] Mnesia(:n1@mrRoboto): ** ERROR ** mnesia_event got {inconsistent_database, :starting_partitioned_network, :n4@quantumDog}
+
+Data now consistent.
