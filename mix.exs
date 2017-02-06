@@ -15,7 +15,7 @@ defmodule Todo.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     [
-      applications: [:logger, :gproc, :cowboy, :plug, :mnesia],
+      applications: [:logger, :gproc, :cowboy, :plug, :mnesia, :libring],
       mod: {Todo.Application, []},
       env: []
     ]
@@ -35,6 +35,7 @@ defmodule Todo.Mixfile do
       {:gproc, "~> 0.5.0"},
       {:cowboy, "~> 1.0.4"},
       {:plug, "~> 1.3.0"},
+      {:libring, github: "bitwalker/libring", tag: :master},
       {:meck, "~> 0.8.3", only: :test},
       {:httpoison, "~> 0.10.0", only: :test}
     ]
