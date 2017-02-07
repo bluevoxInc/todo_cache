@@ -1,39 +1,19 @@
 defmodule Todo.Cache do
-  use GenServer
   require Logger
 
-  def start_link do
-    Logger.info "Starting to-do cache"
-    GenServer.start_link(__MODULE__, nil, name: :todo_cache)
-  end
-
   def server_process(todo_list_name) do
-    case Todo.Server.whereis(todo_list_name) do
+    case Swarm.whereis_name(todo_list_name) do
       :undefined -> 
-        GenServer.call(:todo_cache, {:server_process, todo_list_name})
+        create_server(todo_list_name)
       pid -> pid
     end
   end
 
-
-  def init(_) do
-    {:ok, nil}
-  end
-
-  def handle_call({:server_process, todo_list_name}, _, state) do
-    todo_server_pid = 
-    # Name server could have been created between client call 
-    # so check again. This process is synchronous so if the name server
-    # has not been creates yet it can safely be created here w/o a race 
-    # condition
-    case Todo.Server.whereis(todo_list_name) do
-      :undefined ->
-        {:ok, pid} = Todo.ServerSupervisor.start_child(todo_list_name)
-        pid
-
-      pid -> pid
+  def create_server(todo_list_name) do
+    case Swarm.register_name(todo_list_name, Todo.Server, 
+                             :start_link, [todo_list_name]) do
+      {:ok, pid} -> pid
+      {:error, {:already_registered, pid}} -> pid
     end
-    {:reply, todo_server_pid, state}
   end
-
 end

@@ -11,14 +11,6 @@ use Mix.Config
 # You can configure for your application as:
 #
 config :todo, port: 5454
-config :libring,
-  rings: [
-    # A ring which automatically changes based on Erlang cluster membership
-    # but does not allow nodes named in the node_blacklist (note that
-    # ~r/^remsh.*$/] is a default and need not be specified)
-    ring_todo: [monitor_nodes: true,
-                node_blacklist: [~r/^remsh.*$/]]
-  ]
 #
 # And access this configuration in your application as:
 #

@@ -4,11 +4,7 @@ defmodule Todo.Server do
 
   def start_link(list_name) do
     Logger.info("Starting to-do server for #{list_name}")
-    GenServer.start_link(
-      Todo.Server, 
-      list_name, 
-      name: via_tuple(list_name)
-    )
+    GenServer.start_link(__MODULE__, [list_name])
   end
 
   def add_entry(todo_server, new_entry) do
@@ -19,15 +15,11 @@ defmodule Todo.Server do
     GenServer.call(todo_server, {:entries, date})
   end
 
-  def whereis(name) do
-    :gproc.whereis_name({:n, :l, {:todo_server, name}})
-  end
+  def init([name]) do
+    # Time out this process after _ hours
+    # I don't want it to run forever.
+    :timer.send_after(1*60*60*1000, :name_server_timeout)
 
-  defp via_tuple(name) do
-    {:via, :gproc, {:n, :l, {:todo_server, name}}}
-  end
-
-  def init(name) do
     # Don't restore from the database immediately. Instead lazily
     # fetch entries for the required date on first request.
     {:ok, {name, Todo.List.new}}
@@ -56,9 +48,55 @@ defmodule Todo.Server do
     {:reply, Todo.List.entries(new_list, date), {name, new_list}}
   end
 
+  # called when a handoff has been initiated due to changes
+  # in cluster topology, valid response values are:
+  # 
+  # - `:restart`, to simply restart the process on the new node
+  # - `{:resume, state}`, to hand off some state to the new process
+  # - `:ignore`, to leave the process running on it's current node
+  # 
+  def handle_call({:swarm, :begin_handoff}, _from, {name, todo_list}) do
+    Logger.info "begin handoff --#{name}" 
+    {:reply, {:resume, todo_list}, {name, todo_list}}
+  end
+
+  # called after the process has been restarted on it's new node,
+  #and the old process's state is being handed off. This is only
+  # sent if the return to `begin_handoff` was `{:resume, state}`.
+  # **NOTE**: This is called *after* the process is successfully started,
+  # so make sure to design your processes around this caveat if you
+  # wish to hand off state like this.
+  def handle_cast({:swarm, :end_handoff, todo_list}, {name, _}) do
+    Logger.info "end handoff --#{name}"
+    {:noreply, {name, todo_list}}
+  end
+  # called when a network split is healed and the local process
+  # should continue running, but a duplicate process on the other
+  # side of the split is handing off it's state to us. You can choose
+  # to ignore the handoff state, or apply your own conflict resolution
+  # strategy
+  #
+  # In this case I depend on mnesia to merge,
+  # so clear the cash and let it reload on the next request.
+  def handle_cast({:swarm, :resolve_conflict, _todo_list}, {name, _}) do
+    Logger.info "healing a network split --#{name}"
+    {:noreply, {name, Todo.List.new}}
+  end
+
   # needed for test purposes
   def handle_info({:stop}, state) do
     {:stop, :normal, state}
+  end
+  # This message is sent when this process should die
+  # because it's being moved, use this as an opportunity
+  # to clean up.
+  def handle_info({:swarm, :die}, state) do
+    Logger.info "process shut down because it is being moved"
+    {:stop, :shutdown, state}
+  end
+  def handle_info(:name_server_timeout, {name, _} = state) do
+    Logger.info "#{name} has timed out"
+    {:stop, :timeout, state}
   end
   def handle_info(_, state), do: {:noreply, state}
 
