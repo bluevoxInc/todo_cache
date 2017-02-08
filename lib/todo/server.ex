@@ -63,6 +63,11 @@ defmodule Todo.Server do
     {:reply, {:resume, todo_list}, {name, timer, todo_list}}
   end
 
+  # what node is this named process running on?
+  def handle_call(:what_node_name, _from, state) do
+    {:reply, node(), state}
+  end
+
   # called after the process has been restarted on it's new node,
   #and the old process's state is being handed off. This is only
   # sent if the return to `begin_handoff` was `{:resume, state}`.
