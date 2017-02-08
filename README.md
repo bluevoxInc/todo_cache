@@ -228,5 +228,53 @@ iex(n1@mrRoboto)25> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "obama
 Recovery from a network partition however is another story. Here the ring remains unaware that the missing nodes
 are back. 
 
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&--Swarm--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+$ curl -X POST 'http://localhost:5454/add_entry?list=normans_list&date=20170207&title=job%20interview'
+$ curl -X POST 'http://localhost:5454/add_entry?list=obamas_list&date=20170207&title=big%20vacation'
+$ curl -X POST 'http://localhost:5454/add_entry?list=bobs_list&date=20170207&title=Doctor'
+$ curl -X POST 'http://localhost:5454/add_entry?list=andrews_list&date=20170207&title=music%20lesson'
+$ curl -X POST 'http://localhost:5454/add_entry?list=patricias_list&date=20170207&title=exercise%20class'
+$ curl -X POST 'http://localhost:5454/add_entry?list=patricias_list&date=20170207&title=exercise%20class'
+$ curl -X POST 'http://localhost:5454/add_entry?list=tricias_list&date=20170207&title=exercise%20class'
+$ curl -X POST 'http://localhost:5454/add_entry?list=patricias_list&date=20170207&title=exercise%20class'
+$ curl -X POST 'http://localhost:5454/add_entry?list=arties_list&date=20170207&title=walk'
+$ curl -X POST 'http://localhost:5454/add_entry?list=zachs_list&date=20170207&title=algebra%20class'
+$ curl -X POST 'http://localhost:5454/add_entry?list=eds_list&date=20170207&title=algebra%20class'
+$ curl -X POST 'http://localhost:5454/add_entry?list=bills_list&date=20170207&title=band%20practice'
+$ curl -X POST 'http://localhost:5454/add_entry?list=alices_list&date=20170207&title=yoga%20class'
 
+lists = ["normans_list","obamas_list","bills_list","alices_list",
+"bobs_list","andrews_list","patricias_list","apatriciias_list",
+"a=tricias_list","arties_list","zachs_list","eds_list"]
+
+Enum.each(lists, &IO.inspect {&1, Swarm.whereis_name(&1)})
+{"normans_list", #PID<20954.586.0>}
+{"obamas_list", #PID<20952.483.0>}
+{"bills_list", #PID<20954.569.0>}
+{"alices_list", #PID<20953.545.0>}
+{"bobs_list", #PID<20952.492.0>}
+{"andrews_list", #PID<20954.589.0>}
+{"patricias_list", #PID<20952.520.0>}
+{"apatriciias_list", #PID<0.468.0>}
+{"a=tricias_list", #PID<0.475.0>}
+{"arties_list", :undefined}
+{"zachs_list", :undefined}
+{"eds_list", #PID<0.490.0>}
+:ok
+
+--kill a terminal:
+iex(n2@mrRoboto)33> Enum.each(lists, &IO.inspect {&1, Swarm.whereis_name(&1)})
+{"normans_list", #PID<20953.590.0>}
+{"obamas_list", :undefined}
+{"bills_list", #PID<0.606.0>}
+{"alices_list", #PID<20953.545.0>}
+{"bobs_list", #PID<20952.492.0>}
+{"andrews_list", #PID<0.605.0>}
+{"patricias_list", #PID<20952.520.0>}
+{"apatriciias_list", #PID<0.468.0>}
+{"a=tricias_list", #PID<0.475.0>}
+{"arties_list", :undefined}
+{"zachs_list", :undefined}
+{"eds_list", #PID<0.490.0>}
+:ok
 

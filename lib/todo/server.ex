@@ -2,6 +2,8 @@ defmodule Todo.Server do
   use GenServer
   require Logger
 
+  @timeout 1*60*60*1000
+
   def start_link(list_name) do
     Logger.info("Starting to-do server for #{list_name}")
     GenServer.start_link(__MODULE__, [list_name])
@@ -18,14 +20,14 @@ defmodule Todo.Server do
   def init([name]) do
     # Time out this process after _ hours
     # I don't want it to run forever.
-    :timer.send_after(1*60*60*1000, :name_server_timeout)
+    timer = Process.send_after(self(), :name_server_timeout, @timeout)
 
     # Don't restore from the database immediately. Instead lazily
     # fetch entries for the required date on first request.
-    {:ok, {name, Todo.List.new}}
+    {:ok, {name, timer, Todo.List.new}}
   end
 
-  def handle_call({:add_entry, new_entry}, _, {name, todo_list}) do
+  def handle_call({:add_entry, new_entry}, _, {name, timer, todo_list}) do
     new_list = 
       todo_list
       |> initialize_entries(name, new_entry.date)
@@ -39,13 +41,14 @@ defmodule Todo.Server do
       {name, new_entry.date},   #The key is now more complex
       Todo.List.entries(new_list, new_entry.date)
     )
-
-    {:reply, :ok, {name, new_list}}
+    GenServer.cast(__MODULE__, :reset_timer)
+    {:reply, :ok, {name, timer, new_list}}
   end
 
-  def handle_call({:entries, date}, _, {name, todo_list}) do
+  def handle_call({:entries, date}, _, {name, timer, todo_list}) do
     new_list = initialize_entries(todo_list, name, date)
-    {:reply, Todo.List.entries(new_list, date), {name, new_list}}
+    GenServer.cast(__MODULE__, :reset_timer)
+    {:reply, Todo.List.entries(new_list, date), {name, timer, new_list}}
   end
 
   # called when a handoff has been initiated due to changes
@@ -55,9 +58,9 @@ defmodule Todo.Server do
   # - `{:resume, state}`, to hand off some state to the new process
   # - `:ignore`, to leave the process running on it's current node
   # 
-  def handle_call({:swarm, :begin_handoff}, _from, {name, todo_list}) do
+  def handle_call({:swarm, :begin_handoff}, _from, {name, timer, todo_list}) do
     Logger.info "begin handoff --#{name}" 
-    {:reply, {:resume, todo_list}, {name, todo_list}}
+    {:reply, {:resume, todo_list}, {name, timer, todo_list}}
   end
 
   # called after the process has been restarted on it's new node,
@@ -66,9 +69,9 @@ defmodule Todo.Server do
   # **NOTE**: This is called *after* the process is successfully started,
   # so make sure to design your processes around this caveat if you
   # wish to hand off state like this.
-  def handle_cast({:swarm, :end_handoff, todo_list}, {name, _}) do
+  def handle_cast({:swarm, :end_handoff, todo_list}, {name, timer, _}) do
     Logger.info "end handoff --#{name}"
-    {:noreply, {name, todo_list}}
+    {:noreply, {name, timer, todo_list}}
   end
   # called when a network split is healed and the local process
   # should continue running, but a duplicate process on the other
@@ -78,9 +81,15 @@ defmodule Todo.Server do
   #
   # In this case I depend on mnesia to merge,
   # so clear the cash and let it reload on the next request.
-  def handle_cast({:swarm, :resolve_conflict, _todo_list}, {name, _}) do
+  def handle_cast({:swarm, :resolve_conflict, _todo_list}, {name, timer, _}) do
     Logger.info "healing a network split --#{name}"
-    {:noreply, {name, Todo.List.new}}
+    {:noreply, {name, timer, Todo.List.new}}
+  end
+
+  def handle_cast(:reset_timer, {name, timer, todo_list}) do
+    :timer.cancel(timer)
+    timer = Process.send_after(self(), :name_server_timeout, @timeout)
+    {:noreply, {name, timer, todo_list}}
   end
 
   # needed for test purposes
@@ -94,7 +103,7 @@ defmodule Todo.Server do
     Logger.info "process shut down because it is being moved"
     {:stop, :shutdown, state}
   end
-  def handle_info(:name_server_timeout, {name, _} = state) do
+  def handle_info(:name_server_timeout, {name, _, _} = state) do
     Logger.info "#{name} has timed out"
     {:stop, :timeout, state}
   end
