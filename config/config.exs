@@ -15,7 +15,7 @@ config :libcluster,
   topologies: [
     todo_cluster: [
       strategy: Cluster.Strategy.Epmd,
-      config: [hosts: [:"n1@mrRoboto", :"n2@mrRoboto", :"n3@quantumDog", :"n4@quantumDog"]]
+      config: [hosts: [:"n1@192.168.1.12", :"n2@192.168.1.12", :"n3@192.168.1.14", :"n4@192.168.1.14"]]
     ]
   ]
 #
