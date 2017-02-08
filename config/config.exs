@@ -11,6 +11,13 @@ use Mix.Config
 # You can configure for your application as:
 #
 config :todo, port: 5454
+config :libcluster,
+  topologies: [
+    todo_cluster: [
+      strategy: Cluster.Strategy.Epmd,
+      config: [hosts: [:"n1@mrRoboto", :"n2@mrRoboto", :"n3@quantumDog", :"n4@quantumDog"]]
+    ]
+  ]
 #
 # And access this configuration in your application as:
 #

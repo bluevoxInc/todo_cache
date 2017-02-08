@@ -17,6 +17,13 @@ defmodule Todo.Server do
     GenServer.call(todo_server, {:entries, date})
   end
 
+  def what_node_name(name) do
+    case Swarm.whereis_name(name) do
+      :undefined -> :undefined
+      pid -> GenServer.call(pid, :what_node_name)
+    end
+  end
+
   def init([name]) do
     # Time out this process after _ hours
     # I don't want it to run forever.

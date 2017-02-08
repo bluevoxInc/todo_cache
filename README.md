@@ -282,7 +282,7 @@ iex(n1@mrRoboto)13> Enum.each(lists, &IO.inspect({&1, Swarm.whereis_name(&1)}))
 :ok
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Enum.each(lists, &IO.inspect({&1, GenServer.call({:via, :swarm, &1}, :what_node_name)}))
+Enum.each(lists, &IO.inspect({&1, Todo.Server.what_node_name(&1)}))
 {"normans_list", :n1@mrRoboto}
 {"obamas_list", :n1@mrRoboto}
 {"bills_list", :n2@mrRoboto}
