@@ -25,7 +25,10 @@ config :libcluster,
 #
 # Or configure a 3rd-party app:
 #
-#     config :logger, level: :info
+config :logger, 
+  backends: [:console],
+  compile_time_purge_level: :debug  #purges at compilation time all calls that have log level lower than the value of this option.
+  level: :debug
 #
 
 # It is also possible to import configuration files, relative to this
