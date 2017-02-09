@@ -1,5 +1,4 @@
 defmodule Todo.Cache do
-  require Logger
 
   def server_process(todo_list_name) do
     case Swarm.whereis_name(todo_list_name) do

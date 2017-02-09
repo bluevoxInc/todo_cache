@@ -1,11 +1,10 @@
 defmodule Todo.Server do
   use GenServer
-  require Logger
 
   @timeout 1*60*60*1000
 
   def start_link(list_name) do
-    Logger.info("Starting to-do server for #{list_name}")
+    Todo.Logger.info("Starting to-do server for #{list_name}")
     GenServer.start_link(__MODULE__, [list_name])
   end
 
@@ -65,10 +64,14 @@ defmodule Todo.Server do
   # - `{:resume, state}`, to hand off some state to the new process
   # - `:ignore`, to leave the process running on it's current node
   # 
+  #def handle_call({:swarm, :begin_handoff}, _from, {name, timer, todo_list}) do
+    #  Logger.info "begin handoff name: #{name}"
+    #IO.inspect todo_list
+    #{:reply, {:resume, todo_list}, {name, timer, todo_list}}
+    #end
   def handle_call({:swarm, :begin_handoff}, _from, {name, timer, todo_list}) do
-    Logger.info "begin handoff name: #{name}"
-    IO.inspect todo_list
-    {:reply, {:resume, todo_list}, {name, timer, todo_list}}
+    Todo.Logger.debug "begin handoff name: #{name}"
+    {:reply, :restart, {name, timer, todo_list}}
   end
 
   # what node is this named process running on?
@@ -83,8 +86,7 @@ defmodule Todo.Server do
   # so make sure to design your processes around this caveat if you
   # wish to hand off state like this.
   def handle_cast({:swarm, :end_handoff, todo_list_handoff}, {name, timer, _}) do
-    Logger.info "end handoff name: #{name}"
-    IO.inspect todo_list_handoff
+    Todo.Logger.debug "end handoff name: #{name}"
     {:noreply, {name, timer, todo_list_handoff}}
   end
   # called when a network split is healed and the local process
@@ -96,7 +98,7 @@ defmodule Todo.Server do
   # In this case I depend on mnesia to merge,
   # so clear the cash and let it reload on the next request.
   def handle_cast({:swarm, :resolve_conflict, _todo_list}, {name, timer, _}) do
-    Logger.info "healing a network split --#{name}"
+    Todo.Logger.debug "healing a network split --#{name}"
     {:noreply, {name, timer, Todo.List.new}}
   end
 
@@ -114,11 +116,11 @@ defmodule Todo.Server do
   # because it's being moved, use this as an opportunity
   # to clean up.
   def handle_info({:swarm, :die}, state) do
-    Logger.info "process shut down because it is being moved"
+    Todo.Logger.debug "process shut down because it is being moved"
     {:stop, :shutdown, state}
   end
   def handle_info(:name_server_timeout, {name, _, _} = state) do
-    Logger.info "#{name} has timed out"
+    Todo.Logger.debug "#{name} has timed out"
     {:stop, :timeout, state}
   end
   def handle_info(_, state), do: {:noreply, state}

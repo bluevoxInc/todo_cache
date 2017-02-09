@@ -1,9 +1,8 @@
 defmodule Todo.DatabaseWorker do
   use GenServer
-  require Logger
 
   def start_link(worker_id) do
-    Logger.info "Starting database worker #{worker_id}"
+    Todo.Logger.info "Starting database worker #{worker_id}"
 
     GenServer.start_link(
       __MODULE__, nil,
@@ -136,8 +135,6 @@ defmodule Todo.DatabaseWorker do
 
     #Reply to clients:
     for {_, {from, _}} <- store_queue do
-#IO.inspect key
-#IO.inspect data
       GenServer.reply(from, :ok)
     end
   end

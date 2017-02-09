@@ -1,6 +1,5 @@
 defmodule Todo.Web do
   use Plug.Router
-  require Logger
 
   plug :match
   plug :dispatch
@@ -9,7 +8,7 @@ defmodule Todo.Web do
     case Application.get_env(:todo, :port) do
       nil -> raise("Todo port not specified")
       port ->
-        Logger.info "Starting #{Application.get_application(__MODULE__)} application web router on port #{port}"
+        Todo.Logger.info "Starting #{Application.get_application(__MODULE__)} application web router on port #{port}"
         Plug.Adapters.Cowboy.http(__MODULE__, nil, port: port)
     end
   end
