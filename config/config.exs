@@ -27,7 +27,7 @@ config :libcluster,
 #
 config :logger, 
   backends: [:console],
-  compile_time_purge_level: :debug  #purges at compilation time all calls that have log level lower than the value of this option.
+  compile_time_purge_level: :debug,  #purges at compilation time all calls that have log level lower than the value of this option.
   level: :debug
 #
 
