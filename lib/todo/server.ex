@@ -115,13 +115,13 @@ defmodule Todo.Server do
   # This message is sent when this process should die
   # because it's being moved, use this as an opportunity
   # to clean up.
-  def handle_info({:swarm, :die}, state) do
-    Todo.Logger.debug "process shut down because it is being moved"
-    {:stop, :shutdown, state}
+  def handle_info({:swarm, :die}, {name, timer, todo_list}) do
+    Todo.Logger.debug "process for #{name} shut down because it is being moved"
+    {:stop, :shutdown, {name, timer, todo_list}}
   end
-  def handle_info(:name_server_timeout, {name, _, _} = state) do
+  def handle_info(:name_server_timeout, {name, timer, todo_list}) do
     Todo.Logger.debug "#{name} has timed out"
-    {:stop, :timeout, state}
+    {:stop, :timeout, {name, timer, todo_list}}
   end
   def handle_info(_, state), do: {:noreply, state}
 

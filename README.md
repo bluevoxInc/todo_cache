@@ -229,66 +229,45 @@ Recovery from a network partition however is another story. Here the ring remain
 are back. 
 
 &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&--Swarm--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+Note: changed cluster to reference ip addresses rather than hostnames. Hostnames appeared to give inconsistent 
+results with the lid close (suspend) test.
+
+
 $ curl -X POST 'http://localhost:5454/add_entry?list=normans_list&date=20170207&title=job%20interview'
 $ curl -X POST 'http://localhost:5454/add_entry?list=obamas_list&date=20170207&title=big%20vacation'
-$ curl -X POST 'http://localhost:5454/add_entry?list=eds_list&date=20170207&title=algebra%20class'
+$ curl -X POST 'http://localhost:5454/add_entry?list=zachs_list&date=20170207&title=algebra%20class'
 $ curl -X POST 'http://localhost:5454/add_entry?list=bills_list&date=20170207&title=band%20practice'
 $ curl -X POST 'http://localhost:5454/add_entry?list=alices_list&date=20170207&title=yoga%20class'
 
-lists = ["normans_list","obamas_list","bills_list","alices_list","eds_list"]
+lists = ["normans_list","obamas_list","bills_list","alices_list","zachs_list"]
 
-Enum.each(lists, &IO.inspect {&1, Swarm.whereis_name(&1)})
-{"bills_list", #PID<20947.395.0>}
-{"obamas_list", #PID<0.385.0>}
-{"alices_list", #PID<20946.403.0>}
-{"normans_list", #PID<20947.396.0>}
-{"eds_list", #PID<20945.389.0>}
-:ok
-
---close a node:
-iex(n1@mrRoboto)11> Enum.each(lists, &IO.inspect({&1, Swarm.whereis_name(&1)}))
-{"bills_list", #PID<20947.395.0>}
-{"obamas_list", #PID<0.385.0>}
-{"alices_list", #PID<0.462.0>}
-{"normans_list", #PID<20947.396.0>}
-{"eds_list", #PID<20945.389.0>}
-:ok
-
---start the node again:
-iex(n1@mrRoboto)13> Enum.each(lists, &IO.inspect({&1, Swarm.whereis_name(&1)}))
-{"bills_list", #PID<20947.395.0>}
-{"obamas_list", #PID<0.385.0>}
-{"alices_list", #PID<20946.396.0>}
-{"normans_list", #PID<20947.396.0>}
-{"eds_list", #PID<20945.389.0>}
+iex(n3@192.168.1.14)57> Enum.each(lists, &IO.inspect({&1, Todo.Server.what_node_name(&1)}))
+{"normans_list", :"n4@192.168.1.14"}
+{"obamas_list", :"n3@192.168.1.14"}
+{"bills_list", :"n2@192.168.1.12"}
+{"alices_list", :"n3@192.168.1.14"}
+{"zachs_list", :"n1@192.168.1.12"}
 :ok
 
 --close lid:
-iex(n1@mrRoboto)13> Enum.each(lists, &IO.inspect({&1, Swarm.whereis_name(&1)}))
-{"bills_list", #PID<20947.395.0>}
-{"obamas_list", :undefined}
-{"alices_list", #PID<20946.396.0>}
-{"normans_list", #PID<20947.396.0>}
-{"eds_list", :undefined}
+iex(n3@192.168.1.14)57> Enum.each(lists, &IO.inspect({&1, Todo.Server.what_node_name(&1)}))
+{"normans_list", :"n4@192.168.1.14"}
+{"obamas_list", :"n3@192.168.1.14"}
+{"bills_list", :undefined}
+{"alices_list", :"n3@192.168.1.14"}
+{"zachs_list", :"undefined}
 :ok
 
---open lid:
-iex(n1@mrRoboto)13> Enum.each(lists, &IO.inspect({&1, Swarm.whereis_name(&1)}))
-{"bills_list", #PID<20947.395.0>}
-{"obamas_list", #PID<0.385.0>}
-{"alices_list", #PID<20946.396.0>}
-{"normans_list", #PID<20947.396.0>}
-{"eds_list", #PID<20945.389.0>}
+--open lid (sometime the nodes don't reconnect so do Node.connect(:"n1@192.168.1.12")
+iex(n3@192.168.1.14)57> Enum.each(lists, &IO.inspect({&1, Todo.Server.what_node_name(&1)}))
+{"normans_list", :"n4@192.168.1.14"}
+{"obamas_list", :"n3@192.168.1.14"}
+{"bills_list", :"n2@192.168.1.12"}
+{"alices_list", :"n3@192.168.1.14"}
+{"zachs_list", :"n1@192.168.1.12"}
 :ok
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Enum.each(lists, &IO.inspect({&1, Todo.Server.what_node_name(&1)}))
-{"normans_list", :n1@mrRoboto}
-{"obamas_list", :n1@mrRoboto}
-{"bills_list", :n2@mrRoboto}
-{"alices_list", :n1@mrRoboto}
-{"eds_list", :n2@mrRoboto}
-:ok
+
 
 
 
