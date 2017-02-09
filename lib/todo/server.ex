@@ -66,7 +66,8 @@ defmodule Todo.Server do
   # - `:ignore`, to leave the process running on it's current node
   # 
   def handle_call({:swarm, :begin_handoff}, _from, {name, timer, todo_list}) do
-    Logger.info "begin handoff --#{name}" 
+    Logger.info "begin handoff name: #{name}"
+    IO.inspect todo_list
     {:reply, {:resume, todo_list}, {name, timer, todo_list}}
   end
 
@@ -81,9 +82,10 @@ defmodule Todo.Server do
   # **NOTE**: This is called *after* the process is successfully started,
   # so make sure to design your processes around this caveat if you
   # wish to hand off state like this.
-  def handle_cast({:swarm, :end_handoff, todo_list}, {name, timer, _}) do
-    Logger.info "end handoff --#{name}"
-    {:noreply, {name, timer, todo_list}}
+  def handle_cast({:swarm, :end_handoff, todo_list_handoff}, {name, timer, _}) do
+    Logger.info "end handoff name: #{name}"
+    IO.inspect todo_list_handoff
+    {:noreply, {name, timer, todo_list_handoff}}
   end
   # called when a network split is healed and the local process
   # should continue running, but a duplicate process on the other
