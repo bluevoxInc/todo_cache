@@ -161,113 +161,179 @@ $ iex --sname n4@quantumDog --cookie mycookie --erl "-todo port 5555 -config sys
 iex(n1@mrRoboto)1> nodes = [node() | Node.list]
 [:n1@mrRoboto, :n2@mrRoboto, :n3@quantumDog, :n4@quantumDog]
 
-# initialize mnesia database
-:rpc.multicall(:mnesia, :stop, [])
-:mnesia.create_schema(nodes)
-:rpc.multicall(:mnesia, :start, [])
-{[:ok, :ok, :ok, :ok], []}
+-- initialize mnesia database  
+:rpc.multicall(:mnesia, :stop, [])  
+:mnesia.create_schema(nodes)  
+:rpc.multicall(:mnesia, :start, [])  
+{[:ok, :ok, :ok, :ok], []}  
 
-:mnesia.create_table(:todo_lists, [attributes: [:name, :list], disc_only_copies: [no>
-:ok = :mnesia.wait_for_tables([:todo_lists], 5000)
+:mnesia.create_table(:todo_lists, [attributes: [:name, :list], disc_only_copies: nodes])  
+:ok = :mnesia.wait_for_tables([:todo_lists], 5000)  
+
+--add some records:  
+
+iex(n2@192.168.1.12)33> :mnesia.transaction(fn ->  
+...(n2@192.168.1.12)33> :mnesia.write({:todo_lists, {"bills_list", {2017,2,11}},[{{2017,2,11}, "businees%20meeting"}]})  
+...(n2@192.168.1.12)33> end)  
+{:atomic, :ok}  
+
+iex(n2@192.168.1.12)34> :mnesia.transaction(fn ->  
+...(n2@192.168.1.12)34> :mnesia.write({:todo_lists, {"bills_list", {2017,2,14}},[{{2017,2,14}, "band%20practice"}]})   
+...(n2@192.168.1.12)34> end)  
+{:atomic, :ok}  
+
+iex(n2@192.168.1.12)35> :mnesia.transaction(fn ->   
+...(n2@192.168.1.12)35> :mnesia.write({:todo_lists, {"alices_list", {2017,2,14}},[{{2017,2,14}, "yoga%20class"}]})   
+...(n2@192.168.1.12)35> end)  
+{:atomic, :ok}  
 
 --command line read transaction:
-iex(n1@mrRoboto)3> :mnesia.transaction(fn ->                                     
-...(n1@mrRoboto)3> :mnesia.read({:todo_lists, {"bills_list", {2017, 1, 23}}}) end)
+iex(n2@mrRoboto)36> :mnesia.transaction(fn ->                                     
+...(n2@mrRoboto)36> :mnesia.read({:todo_lists, {"bills_list", {2017, 2, 14}}}) end)  
+{:atomic,  
+ [{:todo_lists, {"bills_list", {2017, 2, 14}},  
+    [%{date: {2017, 2, 14}, title: "band%20practice"}]}]}  
+
+--query for all records  
+iex(n2@192.168.1.12)38> :mnesia.transaction(fn ->                 
+...(n2@192.168.1.12)38> :mnesia.match_object({:todo_lists, :_, :_})  
+...(n2@192.168.1.12)38> end)                                       
+{:atomic,  
+ [{:todo_lists, {"bills_list", {2017, 2, 11}}, [{{2017, 2, 11}, "businees%20meeting"}]},  
+  {:todo_lists, {"bills_list", {2017, 2, 14}}, [{{2017, 2, 14}, "band%20practice"}]},
+  {:todo_lists, {"alices_list", {2017, 2, 14}}, [{{2017, 2, 14}, "yoga%20class"}]}]}
+
+-- query for all records by list name  
+iex(n2@192.168.1.12)39> :mnesia.transaction(fn ->                  
+...(n2@192.168.1.12)39> :mnesia.match_object({:todo_lists, {"bills_list", :_}, :_})  
+...(n2@192.168.1.12)39> end)  
 {:atomic,
- [{:todo_lists, {"bills_list", {2017, 1, 23}},
-    [%{date: {2017, 1, 23}, title: "Market"}]}]}
+ [{:todo_lists, {"bills_list", {2017, 2, 11}}, [{{2017, 2, 11}, "businees%20meeting"}]},
+  {:todo_lists, {"bills_list", {2017, 2, 14}}, [{{2017, 2, 14}, "band%20practice"}]}]}
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%--Partitioned Network--%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Closed lid on mrRoboto, add record on quantumDog:
-Open lid, data inconsistent.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%--Partitioned Network--%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
+Closed lid on mrRoboto, add record on quantumDog:  
+Open lid, data inconsistent.  
 
-Restart:
+Restart:  
 
-$ iex --sname n1@mrRoboto --cookie mycookie --erl "-config sys.config" -S mix
+$ iex --sname n1@mrRoboto --cookie mycookie --erl "-config sys.config" -S mix  
 
-and see:
+and see:  
 
-08:08:03.592 [error] Mnesia(:n1@mrRoboto): ** ERROR ** mnesia_event got {inconsistent_database, :starting_partitioned_network, :n3@quantumDog}
+08:08:03.592 [error] Mnesia(:n1@mrRoboto): ** ERROR ** mnesia_event got {inconsistent_database, :starting_partitioned_network, :n3@quantumDog}    
 
 
-08:08:03.593 [error] Mnesia(:n1@mrRoboto): ** ERROR ** mnesia_event got {inconsistent_database, :starting_partitioned_network, :n4@quantumDog}
+08:08:03.593 [error] Mnesia(:n1@mrRoboto): ** ERROR ** mnesia_event got {inconsistent_database, :starting_partitioned_network, :n4@quantumDog}  
 
-Data now consistent.
+Data now consistent.  
 
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&--libring--&&&&&&&&&&&&&&&&&&&&&&&&
-Consistent hashing for locating processes. This is just a basic ring implementation,
-which does nothing in the way of automatically managing processes when
-the topology changes:
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&--libring--&&&&&&&&&&&&&&&&&&&&&&&&  
+Consistent hashing for locating processes. This is just a basic ring implementation,  
+which does nothing in the way of automatically managing processes when  
+the topology changes:  
 
-iex(n1@mrRoboto)12> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "bills_list"})
-:n1@mrRoboto
+iex(n1@mrRoboto)12> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "bills_list"})  
+:n1@mrRoboto  
 
-iex(n1@mrRoboto)13> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "alices_list"})
-:n2@mrRoboto
+iex(n1@mrRoboto)13> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "alices_list"})  
+:n2@mrRoboto  
 
-iex(n1@mrRoboto)24> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "normans_list"})
-:n3@quantumDog
-
-iex(n1@mrRoboto)25> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "obamas_list"}) 
-:n4@quantumDog
-
-Kill :n4@quantumDog process and see that only the keys for :n4 are relocated.
-iex(n1@mrRoboto)12> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "bills_list"})
-:n1@mrRoboto
-
-iex(n1@mrRoboto)13> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "alices_list"})
-:n2@mrRoboto
-
-iex(n1@mrRoboto)24> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "normans_list"})
-:n3@quantumDog
+iex(n1@mrRoboto)24> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "normans_list"})  
+:n3@quantumDog  
 
 iex(n1@mrRoboto)25> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "obamas_list"}) 
-:n3@quantumDog
+:n4@quantumDog  
 
-Recovery from a network partition however is another story. Here the ring remains unaware that the missing nodes
-are back. 
+Kill :n4@quantumDog process and see that only the keys for :n4 are relocated.  
+iex(n1@mrRoboto)12> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "bills_list"})  
+:n1@mrRoboto  
 
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&--Swarm--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-Note: changed cluster to reference ip addresses rather than hostnames. Hostnames appeared to give inconsistent 
-results with the lid close (suspend) test.
+iex(n1@mrRoboto)13> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "alices_list"})  
+:n2@mrRoboto  
 
+iex(n1@mrRoboto)24> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "normans_list"})  
+:n3@quantumDog  
 
-$ curl -X POST 'http://localhost:5454/add_entry?list=normans_list&date=20170207&title=job%20interview'
-$ curl -X POST 'http://localhost:5454/add_entry?list=obamas_list&date=20170207&title=big%20vacation'
-$ curl -X POST 'http://localhost:5454/add_entry?list=zachs_list&date=20170207&title=algebra%20class'
-$ curl -X POST 'http://localhost:5454/add_entry?list=bills_list&date=20170207&title=band%20practice'
-$ curl -X POST 'http://localhost:5454/add_entry?list=alices_list&date=20170207&title=yoga%20class'
+iex(n1@mrRoboto)25> HashRing.Managed.key_to_node(:ring_todo, {:todo_list, "obamas_list"})  
+:n3@quantumDog  
 
-lists = ["normans_list","obamas_list","bills_list","alices_list","zachs_list"]
+Recovery from a network partition however is another story. Here the ring remains unaware that the missing nodes  
+are back.  
 
-iex(n3@192.168.1.14)57> Enum.each(lists, &IO.inspect({&1, Todo.Server.what_node_name(&1)}))
-{"normans_list", :"n4@192.168.1.14"}
-{"obamas_list", :"n3@192.168.1.14"}
-{"bills_list", :"n2@192.168.1.12"}
-{"alices_list", :"n3@192.168.1.14"}
-{"zachs_list", :"n1@192.168.1.12"}
-:ok
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&--Swarm--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  
+Note: changed cluster to reference ip addresses rather than hostnames. Hostnames appeared to give inconsistent  
+results with the lid close (suspend) test.  
 
---close lid:
-iex(n3@192.168.1.14)57> Enum.each(lists, &IO.inspect({&1, Todo.Server.what_node_name(&1)}))
-{"normans_list", :"n4@192.168.1.14"}
-{"obamas_list", :"n3@192.168.1.14"}
-{"bills_list", :undefined}
-{"alices_list", :"n3@192.168.1.14"}
-{"zachs_list", :"undefined}
-:ok
+$ curl -X POST 'http://localhost:5454/add_entry?list=normans_list&date=20170207&title=job%20interview'  
+$ curl -X POST 'http://localhost:5454/add_entry?list=obamas_list&date=20170207&title=big%20vacation'  
+$ curl -X POST 'http://localhost:5454/add_entry?list=zachs_list&date=20170207&title=algebra%20class'  
+$ curl -X POST 'http://localhost:5454/add_entry?list=bills_list&date=20170207&title=band%20practice'  
+$ curl -X POST 'http://localhost:5454/add_entry?list=alices_list&date=20170207&title=yoga%20class'  
 
---open lid (sometime the nodes don't reconnect so do Node.connect(:"n1@192.168.1.12")
-iex(n3@192.168.1.14)57> Enum.each(lists, &IO.inspect({&1, Todo.Server.what_node_name(&1)}))
-{"normans_list", :"n4@192.168.1.14"}
-{"obamas_list", :"n3@192.168.1.14"}
-{"bills_list", :"n2@192.168.1.12"}
-{"alices_list", :"n3@192.168.1.14"}
-{"zachs_list", :"n1@192.168.1.12"}
-:ok
+lists = ["normans_list","obamas_list","bills_list","alices_list","zachs_list"]  
 
+iex(n3@192.168.1.14)57> Enum.each(lists, &IO.inspect({&1, Todo.Server.what_node_name(&1)}))  
+{"normans_list", :"n4@192.168.1.14"}  
+{"obamas_list", :"n3@192.168.1.14"}  
+{"bills_list", :"n2@192.168.1.12"}  
+{"alices_list", :"n3@192.168.1.14"}  
+{"zachs_list", :"n1@192.168.1.12"}  
+:ok  
 
+--close lid:  
+iex(n3@192.168.1.14)57> Enum.each(lists, &IO.inspect({&1, Todo.Server.what_node_name(&1)}))  
+{"normans_list", :"n4@192.168.1.14"}  
+{"obamas_list", :"n3@192.168.1.14"}  
+{"bills_list", :undefined}  
+{"alices_list", :"n3@192.168.1.14"}  
+{"zachs_list", :"undefined}  
+:ok  
+
+--open lid (sometime the nodes don't reconnect so do Node.connect(:"n1@192.168.1.12")  
+iex(n3@192.168.1.14)57> Enum.each(lists, &IO.inspect({&1, Todo.Server.what_node_name(&1)}))  
+{"normans_list", :"n4@192.168.1.14"}  
+{"obamas_list", :"n3@192.168.1.14"}  
+{"bills_list", :"n2@192.168.1.12"}  
+{"alices_list", :"n3@192.168.1.14"}  
+{"zachs_list", :"n1@192.168.1.12"}  
+:ok  
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&--Amnesia--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  
+
+--Create database:  
+iex(n1@192.168.1.12)2> nodes = [node()|Node.list]    
+[:"n1@192.168.1.12", :"n2@192.168.1.12", :"n3@192.168.1.14", :"n4@192.168.1.14"]  
+
+iex(n1@192.168.1.12)3> TodoDatabase.create(disk_only: nodes)  
+[:ok, :ok]  
+
+--Add record:    
+
+iex(n2@192.168.1.12)3> use Amnesia  
+Amnesia.Helper  
+iex(n2@192.168.1.12)4> use TodoDatabase  
+[Amnesia, Amnesia.Fragment, Exquisite, TodoDatabase, TodoDatabase.TodoList,  
+ TodoDatabase.TodoList]  
+
+iex(n2@192.168.1.12)5> Amnesia.transaction do  
+...(n2@192.168.1.12)5> %TodoList{name: {"bills_list", {2017,2,10}}, list: [{{2017,2,10},"Market"}]} |> TodoList.write  
+...(n2@192.168.1.12)5> end  
+%TodoDatabase.TodoList{list: [{{2017, 2, 10}, "Market"}],  
+ name: {"bills_list", {2017, 2, 10}}}  
+
+--Read record:  
+iex(n2@192.168.1.12)6> Amnesia.transaction do                          
+...(n2@192.168.1.12)6> TodoList.read({"bills_list", {2017, 2, 10}})    
+...(n2@192.168.1.12)6> end  
+%TodoDatabase.TodoList{list: [{{2017, 2, 10}, "Market"}],  
+ name: {"bills_list", {2017, 2, 10}}}  
+
+-- Amnesia has poor documentation at this time, especially in the way of contructing advance queries. So I am removing from  
+project.  I'll continue to use mnesia for now.  
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  
 
 
 
