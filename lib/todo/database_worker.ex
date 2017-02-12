@@ -13,6 +13,10 @@ defmodule Todo.DatabaseWorker do
     GenServer.call(via_tuple(worker_id), {:store, key, data})
   end
 
+  def delete(worker_id, key) do
+    GenServer.call(via_tuple(worker_id), {:delete, key})
+  end
+
   def get(worker_id, key) do
     GenServer.call(via_tuple(worker_id), {:get, key})
   end
@@ -56,10 +60,19 @@ defmodule Todo.DatabaseWorker do
   def handle_call({:store, key, data}, from, state) do
     new_state =
       state
-      |> queue_request(from, key, data)
+      |> queue_write_request(from, key, data)
       |> maybe_store
 
     # Reply will be handled by the storing job
+    {:noreply, new_state}
+  end
+
+  def handle_call({:delete, key}, from, state) do
+    new_state = 
+      state
+      |> queue_delete_request(from, key) 
+      |> maybe_store
+
     {:noreply, new_state}
   end
 
@@ -79,9 +92,7 @@ defmodule Todo.DatabaseWorker do
     {:reply, data, state}
   end
 
-  def handle_info({:DOWN, _, :process, pid, _}, %{store_job: store_job} = state) 
-    when pid == store_job
-  do
+  def handle_info({:DOWN, _, :process, pid, _}, %{store_job: store_job} = state) when pid == store_job do
     # Clear the store job (PID) and immediately invoke maybe_store to
     # start another store job, provided there is something in the queue.
     {:noreply, maybe_store(%{state | store_job: nil})}
@@ -92,8 +103,18 @@ defmodule Todo.DatabaseWorker do
 
   def handle_info(_, state), do: {:noreply, state}
 
-  defp queue_request(state, from, key, data) do
-    %{state | store_queue: Map.put(state.store_queue, key, {from, data})}
+  defp queue_write_request(state, from, key, data) do
+
+    action = fn() -> apply(:mnesia, :write, [{:todo_lists, key, data}]) end
+
+    %{state | store_queue: Map.put(state.store_queue, key, {from, action})}
+  end
+
+  defp queue_delete_request(state, from, key) do
+
+    action = fn() -> apply(:mnesia, :delete, [{:todo_lists, key}]) end
+
+    %{state | store_queue: Map.put(state.store_queue, key, {from, action})}
   end
 
   defp maybe_store(%{store_job: nil} = state) do
@@ -127,8 +148,8 @@ defmodule Todo.DatabaseWorker do
   defp do_write(store_queue) do
     # Store the data
     {:atomic, :ok} = :mnesia.transaction(fn ->
-      for {key, {_, data}} <- store_queue do
-        :ok = :mnesia.write({:todo_lists, key, data})
+      for {_, {_, action}} <- store_queue do
+        :ok = action.()
       end
       :ok
     end)

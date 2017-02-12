@@ -344,13 +344,26 @@ iex(n2@192.168.1.12)6> Amnesia.transaction do
 -- Amnesia has poor documentation at this time, especially in the way of constructing advance queries. So I am removing from  
 project.  I'll continue to use mnesia for now.  
 
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&--add web functionality--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&--add CRUD functionality--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  
 
---add delete entry code by date:  
+--add delete entry code by date (deletes all data assigned to a given date:  
 curl -X DELETE 'http://localhost:5454/delete_entry_by_date?list=normans_list&date=20170211  
 
-Actually, on deeper thought I don't want to delete entries because a todo list should maintain a history. 
-Instead, there should be a state of pending/complete added to the data. 
-If it is desired record is to be cleared, the UI can just edit the entry sending an empty :title with a state of complete.
+--change code to execute a list of :mnesia functions under a transaction in database_worker:
+
+--prototype:
+iex(n1@192.168.1.12)40> actions = [  
+...(n1@192.168.1.12)40> {"bill", fn() -> apply(:mnesia, :write, 
+      [{:todo_lists, {"test_list", {2017, 2, 22}}, [%{date: {2017, 2, 22}, title: "any thing"}]}]) end},  
+...(n1@192.168.1.12)40> {"bob", fn() -> apply(:mnesia, :delete, [{:todo_lists, {"test_list", {2017, 2, 16}}}]) end}]  
+[{"bill", #Function<20.52032458/0 in :erl_eval.expr/5>},  
+ {"bob", #Function<20.52032458/0 in :erl_eval.expr/5>}]  
+
+iex(n1@192.168.1.12)41> :mnesia.transaction(fn ->  
+...(n1@192.168.1.12)41> for {_, action} <- actions do   
+...(n1@192.168.1.12)41> :ok = action.()  
+...(n1@192.168.1.12)41> end  
+...(n1@192.168.1.12)41> end)  
+{:atomic, [:ok, :ok]} 
 
 

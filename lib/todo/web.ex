@@ -17,7 +17,7 @@ defmodule Todo.Web do
     Plug.Conn.send_resp(conn, 200, "world")
   end
 
-  # curl -d '' 'http://localhost:5454/entries?list=bill's list&date=20170123&title=Dentist'
+  # curl -d '' 'http://localhost:5454/entries?list=bills_list&date=20170123&title=Dentist'
   get "/entries" do
     conn
     |> Plug.Conn.fetch_query_params
@@ -25,11 +25,19 @@ defmodule Todo.Web do
     |> respond
   end
 
-  # curl -d '' 'http://localhost:5454/add_entry?list=bill's list&date=20170123&title=Dentist'
+  # curl -d '' 'http://localhost:5454/add_entry?list=bills_list&date=20170123&title=Dentist'
   post "/add_entry" do
     conn
     |> Plug.Conn.fetch_query_params
     |> add_entry
+    |> respond
+  end
+
+  # curl -X DELETE 'http://localhost:5454/delete_entry_by_date?list=bills_list&date=20170211
+  delete "/delete_entry_by_date" do
+    conn
+    |> Plug.Conn.fetch_query_params
+    |> delete_entry_date
     |> respond
   end
 
@@ -65,6 +73,15 @@ defmodule Todo.Web do
           title: conn.params["title"]
         }
     )
+
+    Plug.Conn.assign(conn, :response, "OK")
+  end
+
+  defp delete_entry_date(conn) do
+    conn.params["list"]
+    |> Todo.Cache.server_process
+    |> Todo.Server.delete_entry_date(
+        parse_date(conn.params["date"]))
 
     Plug.Conn.assign(conn, :response, "OK")
   end

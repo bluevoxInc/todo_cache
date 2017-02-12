@@ -11,6 +11,12 @@ defmodule Todo.Database do
     |> Todo.DatabaseWorker.store(key, data)
   end
 
+  def delete(key) do
+    key
+    |> choose_worker
+    |> Todo.DatabaseWorker.delete(key)
+  end
+
   def get(key) do
     key
     |> choose_worker

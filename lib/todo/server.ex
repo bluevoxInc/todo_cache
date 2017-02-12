@@ -12,6 +12,10 @@ defmodule Todo.Server do
     GenServer.call(todo_server, {:add_entry, new_entry})
   end
 
+  def delete_entry_date(todo_server, date) do
+    GenServer.call(todo_server, {:delete_entry_date, date})
+  end
+
   def entries(todo_server, date) do
     GenServer.call(todo_server, {:entries, date})
   end
@@ -47,6 +51,25 @@ defmodule Todo.Server do
       {name, new_entry.date},   #The key is now more complex
       Todo.List.entries(new_list, new_entry.date)
     )
+    GenServer.cast(__MODULE__, :reset_timer)
+    {:reply, :ok, {name, timer, new_list}}
+  end
+   
+  def handle_call({:delete_entry_date, date}, _, {name, timer, todo_list}) do
+    Todo.Database.delete({name, date})
+
+    # It's conceivable that this delete request could be waiting in a database_worker 
+    # queue when a subsequent write request for the same date is being processed. 
+    # The write process will check the cache for the subject date. 
+    # The date entry will not be found so a request will be made to the database to refresh the cache. 
+    # But the data, slated for deletion may not have been deleted in the DB yet because the request
+    # is waiting its turn in the queue. So the cache could be refreshed with transient data 
+    # that should be gone. 
+    # To get around this just reset the cache entry for this date 
+    # to an empty list. This will prevent the cache from subsequently refreshing 
+    # with stale date and the write request will be adding data to a clean list.
+    new_list = Todo.List.set_entries(todo_list, date, [])
+
     GenServer.cast(__MODULE__, :reset_timer)
     {:reply, :ok, {name, timer, new_list}}
   end
