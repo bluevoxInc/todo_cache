@@ -173,17 +173,16 @@ iex(n1@mrRoboto)1> nodes = [node() | Node.list]
 --add some records:  
 
 iex(n2@192.168.1.12)33> :mnesia.transaction(fn ->  
-...(n2@192.168.1.12)33> :mnesia.write({:todo_lists, {"bills_list", {2017,2,11}},[{{2017,2,11}, "businees%20meeting"}]})  
+...(n2@192.168.1.12)33> :mnesia.write({:todo_lists, {"bills_list", {2017, 2, 11}}, [%{date: {2017, 2, 11}, title: "business meeting"}]})     
 ...(n2@192.168.1.12)33> end)  
 {:atomic, :ok}  
 
-iex(n2@192.168.1.12)34> :mnesia.transaction(fn ->  
-...(n2@192.168.1.12)34> :mnesia.write({:todo_lists, {"bills_list", {2017,2,14}},[{{2017,2,14}, "band%20practice"}]})   
-...(n2@192.168.1.12)34> end)  
-{:atomic, :ok}  
+iex(n1@192.168.1.12)18> :mnesia.transaction(fn ->                                                                                    
+...(n1@192.168.1.12)18> :mnesia.write({:todo_lists, {"bills_list", {2017, 2, 14}}, [%{date: {2017, 2, 14}, title: "band practice"}]})   
+...(n1@192.168.1.12)18> end)
 
 iex(n2@192.168.1.12)35> :mnesia.transaction(fn ->   
-...(n2@192.168.1.12)35> :mnesia.write({:todo_lists, {"alices_list", {2017,2,14}},[{{2017,2,14}, "yoga%20class"}]})   
+...(n2@192.168.1.12)35> :mnesia.write({:todo_lists, {"alices_list", {2017, 2, 14}},[%{date: {2017, 2, 14}, title: "yoga%20class"}]})     
 ...(n2@192.168.1.12)35> end)  
 {:atomic, :ok}  
 
@@ -198,19 +197,31 @@ iex(n2@mrRoboto)36> :mnesia.transaction(fn ->
 iex(n2@192.168.1.12)38> :mnesia.transaction(fn ->                 
 ...(n2@192.168.1.12)38> :mnesia.match_object({:todo_lists, :_, :_})  
 ...(n2@192.168.1.12)38> end)                                       
-{:atomic,  
- [{:todo_lists, {"bills_list", {2017, 2, 11}}, [{{2017, 2, 11}, "businees%20meeting"}]},  
-  {:todo_lists, {"bills_list", {2017, 2, 14}}, [{{2017, 2, 14}, "band%20practice"}]},
-  {:todo_lists, {"alices_list", {2017, 2, 14}}, [{{2017, 2, 14}, "yoga%20class"}]}]}
+{:atomic,
+ [{:todo_lists, {"obamas_list", {2017, 2, 11}}, [%{date: {2017, 2, 11}, title: "coding session"}]},
+  {:todo_lists, {"bills_list", {2017, 2, 14}}, [%{date: {2017, 2, 14}, title: "band practice"}]},
+  {:todo_lists, {"bills_list", {2017, 2, 11}}, [%{date: {2017, 2, 11}, title: "business meeting"}]},
+  {:todo_lists, {"alices_list", {2017, 2, 14}}, [%{date: {2017, 2, 14}, title: "yoga class"}]}]}
 
 -- query for all records by list name  
 iex(n2@192.168.1.12)39> :mnesia.transaction(fn ->                  
 ...(n2@192.168.1.12)39> :mnesia.match_object({:todo_lists, {"bills_list", :_}, :_})  
 ...(n2@192.168.1.12)39> end)  
 {:atomic,
- [{:todo_lists, {"bills_list", {2017, 2, 11}}, [{{2017, 2, 11}, "businees%20meeting"}]},
-  {:todo_lists, {"bills_list", {2017, 2, 14}}, [{{2017, 2, 14}, "band%20practice"}]}]}
+ [{:todo_lists, {"bills_list", {2017, 2, 11}}, [%{date: {2017, 2, 11}, title: "businees meeting"}]},
+  {:todo_lists, {"bills_list", {2017, 2, 14}}, [%{date: {2017, 2, 14}, title: "band practice"}]}]}
 
+-- delete records from table:  
+iex(n1@192.168.1.12)13> :mnesia.transaction(fn ->                  
+...(n1@192.168.1.12)13> :mnesia.delete({:todo_lists, {"bills_list", {2017, 2, 11}}})
+...(n1@192.168.1.12)13> end)                                                        
+{:atomic, :ok}
+
+
+Note: it appears that all nodes must be started before the :todo_lists table is loaded. I can continue to 
+access the table if I shut down successive nodes however. The table can be forced to load when less 
+than the full number of nodes has been initialized by running:
+:mnesia.force_load_tables(:todo_lists)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%--Partitioned Network--%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
 Closed lid on mrRoboto, add record on quantumDog:  
@@ -330,10 +341,16 @@ iex(n2@192.168.1.12)6> Amnesia.transaction do
 %TodoDatabase.TodoList{list: [{{2017, 2, 10}, "Market"}],  
  name: {"bills_list", {2017, 2, 10}}}  
 
--- Amnesia has poor documentation at this time, especially in the way of contructing advance queries. So I am removing from  
+-- Amnesia has poor documentation at this time, especially in the way of constructing advance queries. So I am removing from  
 project.  I'll continue to use mnesia for now.  
 
-&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&--add web functionality--&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&  
 
+--add delete entry code by date:  
+curl -X DELETE 'http://localhost:5454/delete_entry_by_date?list=normans_list&date=20170211  
+
+Actually, on deeper thought I don't want to delete entries because a todo list should maintain a history. 
+Instead, there should be a state of pending/complete added to the data. 
+If it is desired record is to be cleared, the UI can just edit the entry sending an empty :title with a state of complete.
 
 
