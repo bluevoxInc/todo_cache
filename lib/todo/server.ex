@@ -20,6 +20,10 @@ defmodule Todo.Server do
     GenServer.call(todo_server, {:entries, date})
   end
 
+  def all_entries(todo_server) do
+    GenServer.call(todo_server, {:all_entries})
+  end
+
   def what_node_name(name) do
     case Swarm.whereis_name(name) do
       :undefined -> :undefined
@@ -78,6 +82,12 @@ defmodule Todo.Server do
     new_list = initialize_entries(todo_list, name, date)
     GenServer.cast(__MODULE__, :reset_timer)
     {:reply, Todo.List.entries(new_list, date), {name, timer, new_list}}
+  end
+
+  def handle_call({:all_entries}, _, {name, timer, _}) do
+    new_list = initialize_all_entries(name)
+    GenServer.cast(__MODULE__, :reset_timer)
+    {:reply, Todo.List.all_entries(new_list), {name, timer, new_list}}
   end
 
   # called when a handoff has been initiated due to changes
@@ -159,6 +169,11 @@ defmodule Todo.Server do
 
       _found -> todo_list
     end
+  end
+
+  defp initialize_all_entries(name) do
+    entries = Todo.Database.get_by_name(name) || []
+    Todo.List.new(entries)
   end
 
 end

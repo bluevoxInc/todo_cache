@@ -24,8 +24,14 @@ defmodule Todo.List do
     Map.get(days, date)
   end
 
+  def all_entries(%Todo.List{days: days}) do
+    Enum.map(days, fn{_, v} -> v end)
+    |> List.flatten
+  end
+
   # This function called to restore entries from the database.
   def set_entries(todo_list, date, entries) do
     %Todo.List{todo_list | days: Map.put(todo_list.days, date, entries)}
   end
+
 end

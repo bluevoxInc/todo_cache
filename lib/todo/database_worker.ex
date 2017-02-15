@@ -21,6 +21,10 @@ defmodule Todo.DatabaseWorker do
     GenServer.call(via_tuple(worker_id), {:get, key})
   end
 
+  def get_by_name(worker_id, name) do
+    GenServer.call(via_tuple(worker_id), {:get_by_name, name})
+  end
+
   #The :via option expects a module that exports 
   #register_name/2, unregister_name/1, whereis_name/1 and send/2.
   defp via_tuple(worker_id) do
@@ -78,7 +82,7 @@ defmodule Todo.DatabaseWorker do
 
   def handle_call({:get, key}, _, state) do
     # Always read from the database. Looking up data in the queue should
-    # not be done because the data is not actually stored and might not
+    # not be done because that data is not stored and may not
     # actually end up in the database.
 #IO.inspect key
     read_result = :mnesia.transaction(fn -> 
@@ -87,6 +91,28 @@ defmodule Todo.DatabaseWorker do
     data = case read_result do
       {:atomic, [{:todo_lists, ^key, list}]} -> list
       _ -> nil
+    end
+
+    {:reply, data, state}
+  end
+
+  def handle_call({:get_by_name, name}, _, state) do
+    read_result = :mnesia.transaction(fn ->
+      :mnesia.match_object({:todo_lists, {name, :_}, :_})
+    end)
+
+    data = case read_result do
+      {:atomic, []} -> []
+
+      {:atomic, [{:todo_lists, {^name, _}, l1} | rest]} -> 
+        Enum.reduce(rest, l1, 
+            fn({:todo_lists, {^name, _}, ln}, acc) -> [ln | acc] end)
+        |> List.flatten
+        |> Enum.reverse
+
+      _ ->
+        Todo.Logger.error "Todo.DatabaseWorker: Unexpected result" 
+        nil
     end
 
     {:reply, data, state}

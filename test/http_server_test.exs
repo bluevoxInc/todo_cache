@@ -45,10 +45,38 @@ defmodule HttpServerTest do
       _ -> assert false
     end
 
+    case HTTPoison.post("http://127.0.0.1:5454/add_entry?list=test&date=20170203&title=Batting%20practice", "") do
+      {:ok, %HTTPoison.Response{status_code: status_code, headers: _headers, body: body}} ->
+        assert status_code == 200
+        assert body == "OK"
+      _ -> assert false
+    end
+
     case HTTPoison.get("http://127.0.0.1:5454/entries?list=test&date=20170123") do
       {:ok, %HTTPoison.Response{status_code: status_code, headers: _headers, body: body}} ->
         assert status_code == 200
         assert body == "2017-1-23 Business meeting\n2017-1-23 Dentist"
+      _ -> assert false
+    end
+
+    case HTTPoison.get("http://127.0.0.1:5454/all_entries?list=test") do
+      {:ok, %HTTPoison.Response{status_code: status_code, headers: _headers, body: body}} ->
+        assert status_code == 200
+        assert body == "2017-1-23 Business meeting\n2017-1-23 Dentist\n2017-02-03 Batting practice"
+      _ -> assert false
+    end
+
+    case HTTPoison.delete("http://127.0.0.1:5454/delete_entry_by_date?list=test&date=20170123") do
+      {:ok, %HTTPoison.Response{status_code: status_code, headers: _headers, body: body}} ->
+        assert status_code == 200
+        assert body == "OK"
+      _ -> assert false
+    end
+
+    case HTTPoison.get("http://127.0.0.1:5454/entries?list=test&date=20170123") do
+      {:ok, %HTTPoison.Response{status_code: status_code, headers: _headers, body: body}} ->
+        assert status_code == 200
+        assert body == ""
       _ -> assert false
     end
 

@@ -5,7 +5,7 @@ defmodule TodoListTest do
     assert(3 == sample_todo_list().size)
     assert(2 == sample_todo_list() |> Todo.List.entries({2016, 12, 19}) |> length)
     assert(1 == sample_todo_list() |> Todo.List.entries({2016, 12, 20}) |> length)
-    assert(0 == sample_todo_list() |> Todo.List.entries({2016, 12, 22}) |> length)
+    assert(nil == sample_todo_list() |> Todo.List.entries({2016, 12, 22}))
 
     assert({2016, 12, 20} == shopping_entry().date)
     assert("Shopping" == shopping_entry().title)
