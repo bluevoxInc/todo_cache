@@ -3,6 +3,14 @@ defmodule HttpServerTest do
 
   setup do
     File.rm_rf("Mnesia.nonode@nohost")
+
+    # Initializes the mnesia database.
+    :mnesia.stop    # First we stop mnesia, so we can create the schema.
+    :mnesia.create_schema([node()])
+    :mnesia.start
+    :mnesia.create_table(:todo_lists, [attributes: [:name, :list], disc_only_copies: [node()]])
+    :ok = :mnesia.wait_for_tables([:todo_lists], 5000)
+    
     {:ok, apps} = Application.ensure_all_started(:todo)
 
     # Start HTTPoison
@@ -62,7 +70,7 @@ defmodule HttpServerTest do
     case HTTPoison.get("http://127.0.0.1:5454/all_entries?list=test") do
       {:ok, %HTTPoison.Response{status_code: status_code, headers: _headers, body: body}} ->
         assert status_code == 200
-        assert body == "2017-1-23 Business meeting\n2017-1-23 Dentist\n2017-02-03 Batting practice"
+        assert body == "2017-1-23 Business meeting\n2017-1-23 Dentist\n2017-2-3 Batting practice"
       _ -> assert false
     end
 
