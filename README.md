@@ -18,10 +18,10 @@ TODO: need to research how to handle and test for network partitions.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%--Mnesia Cluster--%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
 Four nodes over two machines:  
-$ iex --sname n1@192.168.1.12 --cookie mycookie -S mix  
-$ iex --sname n2@192.168.1.12 --cookie mycookie --erl "-todo port 5555" -S mix  
-$ iex --sname n3@192.168.1.14 --cookie mycookie -S mix
-$ iex --sname n4@192.168.1.14 --cookie mycookie --erl "-todo port 5555" -S mix
+$ iex --name n1@192.168.1.12 --cookie mycookie -S mix  
+$ iex --name n2@192.168.1.12 --cookie mycookie --erl "-todo port 5555" -S mix  
+$ iex --name n3@192.168.1.14 --cookie mycookie -S mix
+$ iex --name n4@192.168.1.14 --cookie mycookie --erl "-todo port 5555" -S mix
 
 --ensure all nodes talking to each other:  
 iex(n2@192.168.1.12)3> nodes = [node() | Node.list]  
