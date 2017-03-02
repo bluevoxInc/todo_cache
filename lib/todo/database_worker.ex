@@ -80,7 +80,7 @@ defmodule Todo.DatabaseWorker do
       :mnesia.read({:todo_lists, key}) end)
 
     data = case read_result do
-      {:atomic, [{:todo_lists, ^key, list}]} -> list
+      {:atomic, [{:todo_lists, ^key, list, _}]} -> list
       _ -> nil
     end
 
@@ -89,15 +89,15 @@ defmodule Todo.DatabaseWorker do
 
   def handle_call({:get_by_name, name}, _, state) do
     read_result = :mnesia.transaction(fn ->
-      :mnesia.match_object({:todo_lists, {name, :_}, :_})
+      :mnesia.match_object({:todo_lists, {name, :_}, :_, :_})
     end)
 
     data = case read_result do
       {:atomic, []} -> []
 
-      {:atomic, [{:todo_lists, {^name, _}, l1} | rest]} -> 
+      {:atomic, [{:todo_lists, {^name, _}, l1, _} | rest]} -> 
         Enum.reduce(rest, l1, 
-            fn({:todo_lists, {^name, _}, ln}, acc) -> [ln | acc] end)
+            fn({:todo_lists, {^name, _}, ln, _}, acc) -> [ln | acc] end)
         |> List.flatten
         |> Enum.reverse
 
