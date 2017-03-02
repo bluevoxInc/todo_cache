@@ -41,11 +41,11 @@ defmodule Todo.Web do
     |> respond
   end
 
-  # curl -X DELETE 'http://localhost:5454/delete_entry_by_date?list=bills_list&date=20170211
-  delete "/delete_entry_by_date" do
+  # curl -X POST 'http://localhost:5454/clear_entry_by_date?list=bills_list&date=20170211
+  post "/clear_entry_by_date" do
     conn
     |> Plug.Conn.fetch_query_params
-    |> delete_entry_date
+    |> clear_entry_date
     |> respond
   end
 
@@ -100,10 +100,10 @@ defmodule Todo.Web do
     Plug.Conn.assign(conn, :response, "OK")
   end
 
-  defp delete_entry_date(conn) do
+  defp clear_entry_date(conn) do
     conn.params["list"]
     |> Todo.Cache.server_process
-    |> Todo.Server.delete_entry_date(
+    |> Todo.Server.clear_entry_date(
         parse_date(conn.params["date"]))
 
     Plug.Conn.assign(conn, :response, "OK")

@@ -1,7 +1,7 @@
 defmodule Todo.Server do
   use GenServer
 
-  @timeout 1*60*60*1000
+  @timeout 24*60*60*1000
 
   def start_link(list_name) do
     Todo.Logger.info("Starting to-do server for #{list_name}")
@@ -12,8 +12,8 @@ defmodule Todo.Server do
     GenServer.call(todo_server, {:add_entry, new_entry})
   end
 
-  def delete_entry_date(todo_server, date) do
-    GenServer.call(todo_server, {:delete_entry_date, date})
+  def clear_entry_date(todo_server, date) do
+    GenServer.call(todo_server, {:clear_entry, date})
   end
 
   def entries(todo_server, date) do
@@ -58,26 +58,23 @@ defmodule Todo.Server do
     GenServer.cast(__MODULE__, :reset_timer)
     {:reply, :ok, {name, timer, new_list}}
   end
-   
-  def handle_call({:delete_entry_date, date}, _, {name, timer, todo_list}) do
-    Todo.Database.delete({name, date})
 
-    # It's conceivable that this delete request could be waiting in a database_worker 
-    # queue when a subsequent write request for the same date is being processed. 
-    # The write process will check the cache for the subject date. 
-    # The date entry will not be found so a request will be made to the database to refresh the cache. 
-    # But the data, slated for deletion may not have been deleted in the DB yet because the request
-    # is waiting its turn in the queue. So the cache could be refreshed with transient data 
-    # that should be gone. 
-    # To get around this just reset the cache entry for this date 
-    # to an empty list. This will prevent the cache from subsequently refreshing 
-    # with stale date and the write request will be adding data to a clean list.
-    new_list = Todo.List.set_entries(todo_list, date, [])
+  def handle_call({:clear_entry, date}, _, {name, timer, todo_list}) do
+    updated_list = initialize_entries(todo_list, name, date)
+    new_list = case Todo.List.entries(updated_list, date) do      
+      [] -> updated_list         # do nothing, the entry is already empty
+      _ ->  new_list = Todo.List.set_entries(updated_list, date, [])   #clear the entry 
+            Todo.Database.store(
+              {name, date},
+              Todo.List.entries(new_list, date)
+            )
+            new_list
+    end
 
     GenServer.cast(__MODULE__, :reset_timer)
     {:reply, :ok, {name, timer, new_list}}
   end
-
+   
   def handle_call({:entries, date}, _, {name, timer, todo_list}) do
     new_list = initialize_entries(todo_list, name, date)
     GenServer.cast(__MODULE__, :reset_timer)

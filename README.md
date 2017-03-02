@@ -247,4 +247,140 @@ iex(n1@192.168.1.12)41> :mnesia.transaction(fn ->
 2017-2-15 Dog walk  
 2017-2-16 Return library books  
 
+*************************************************************************
+prototype mnesia table:
+
+[wnorman@mrRoboto todo_cache] $ cd ../mnesia_proj/
+[wnorman@mrRoboto mnesia_proj] $ iex --sname proto1 -S mix
+
+iex(proto1@mrRoboto)3> :mnesia.stop
+
+iex(proto1@mrRoboto)7> node() 
+:proto1@mrRoboto
+iex(proto1@mrRoboto)8> :mnesia.create_schema([node()])
+:ok
+iex(proto1@mrRoboto)9> :mnesia.start
+:ok
+
+iex(proto1@mrRoboto)11> :mnesia.create_table(TodoList, i
+[attributes: [:name, :list, :modified], disc_only_copies: [node()]])
+{:atomic, :ok}
+
+# can this modified value be evaluated in unsplit? Yes.
+iex(proto1@mrRoboto)15> t1 = :calendar.universal_time()
+{{2017, 3, 1}, {13, 35, 13}}
+iex(proto1@mrRoboto)16> t2 = :calendar.universal_time()
+{{2017, 3, 1}, {13, 35, 20}}
+iex(proto1@mrRoboto)17> t1 < t2
+true
+iex(proto1@mrRoboto)18> t2 < t1
+false
+
+# Add a few records:
+
+iex(proto1@mrRoboto)19> :mnesia.transaction(fn ->
+...(proto1@mrRoboto)19> :mnesia.write({TodoList, {"bills_list", {2017, 3, 11}}, [%{date: {2017, 3, 11}, title: "business meeting"}], :calendar.universal_time})
+...(proto1@mrRoboto)19> end)
+{:atomic, :ok}
+iex(proto1@mrRoboto)20> :mnesia.transaction(fn ->                             ...(proto1@mrRoboto)20> :mnesia.write({TodoList, {"bills_list", {2017, 3, 1}}, [%{date: {2017, 3, 1}, title: "walk dog"}], :calendar.universal_time})       ...(proto1@mrRoboto)20> end)
+{:atomic, :ok}
+iex(proto1@mrRoboto)21> :mnesia.transaction(fn ->                             ...(proto1@mrRoboto)21> :mnesia.write({TodoList, {"bills_list", {2017, 3, 2}}, [%{date: {2017, 3, 2}, title: "shopping"}], :calendar.universal_time})
+...(proto1@mrRoboto)21> end)
+{:atomic, :ok}
+iex(proto1@mrRoboto)22> :mnesia.transaction(fn ->
+...(proto1@mrRoboto)22> :mnesia.match_object({TodoList, {"bills_list", :_}, :_, :_})
+...(proto1@mrRoboto)22> end)
+{:atomic,
+ [{TodoList, {"bills_list", {2017, 3, 11}},
+   [%{date: {2017, 3, 11}, title: "business meeting"}],
+   {{2017, 3, 1}, {13, 42, 44}}},
+  {TodoList, {"bills_list", {2017, 3, 1}},
+   [%{date: {2017, 3, 1}, title: "walk dog"}], {{2017, 3, 1}, {13, 43, 25}}},
+  {TodoList, {"bills_list", {2017, 3, 2}},
+   [%{date: {2017, 3, 2}, title: "shopping"}], {{2017, 3, 1}, {13, 44, 9}}}]}
+iex(proto1@mrRoboto)23>
+
+# set timestamp within action command:
+iex(proto1@mrRoboto)23> action = fn() -> apply(:mnesia, :write, [{TodoList, 
+...(proto1@mrRoboto)23> {"bills_list", {2017, 3, 3}},  
+...(proto1@mrRoboto)23> [%{date: {2017, 3, 3}, title: "band practice"}],
+...(proto1@mrRoboto)23> :calendar.universal_time}])
+...(proto1@mrRoboto)23> end
+#Function<20.52032458/0 in :erl_eval.expr/5>
+
+# time before transaction: 
+iex(proto1@mrRoboto)24> t4 = :calendar.universal_time
+{{2017, 3, 1}, {14, 8, 33}}
+
+iex(proto1@mrRoboto)25> :mnesia.transaction(fn ->
+...(proto1@mrRoboto)25> :ok = action.()
+...(proto1@mrRoboto)25> end)
+{:atomic, :ok}
+iex(proto1@mrRoboto)26> :mnesia.transaction(fn ->                             ...(proto1@mrRoboto)26> :mnesia.match_object({TodoList, {"bills_list", :_}, :_, :_})
+...(proto1@mrRoboto)26> end)
+{:atomic,
+ [{TodoList, {"bills_list", {2017, 3, 11}},
+   [%{date: {2017, 3, 11}, title: "business meeting"}],
+   {{2017, 3, 1}, {13, 42, 44}}},
+  {TodoList, {"bills_list", {2017, 3, 1}},
+   [%{date: {2017, 3, 1}, title: "walk dog"}], {{2017, 3, 1}, {13, 43, 25}}},
+  {TodoList, {"bills_list", {2017, 3, 2}},
+   [%{date: {2017, 3, 2}, title: "shopping"}], {{2017, 3, 1}, {13, 44, 9}}},
+  {TodoList, {"bills_list", {2017, 3, 3}},
+   [%{date: {2017, 3, 3}, title: "band practice"}],
+   {{2017, 3, 1}, {14, 9, 46}}}]}
+
+# timestamp of record is greater than t4 which means stamp is not 
+# applied until transaction is executed. 
+
+********************************************************************
+# New table definition for :todo_lists  
+# Add a modified column that unsplit can key on to merger net split.  
+
+#Connect all nodes and delete :todo_lists 
+iex(n2@192.168.1.12)4> :mnesia.delete_table(:todo_lists)  
+{:atomic, :ok}  
+iex(n2@192.168.1.12)5> :mnesia.system_info(:tables)  
+[:schema]  
+
+iex(n1@192.168.1.12)4> nodes=[node()|Node.list]  
+[:"n1@192.168.1.12", :"n2@192.168.1.12", :"n3@192.168.1.14",  
+ :"n4@192.168.1.14"]  
+
+:mnesia.create_table(:todo_lists, [attributes: [:name, :list, :modified], 
+user_properties: [unsplit_method: {:unsplit_lib, :last_modified, []}], disc_only_copies: nodes]) 
+{:atomic, :ok}
+
+iex(n1@192.168.1.12)6> :mnesia.system_info(:tables)  
+[:todo_lists, :schema]  
+
+iex(n1@192.168.1.12)8> :mnesia.table_info(:todo_lists, :user_properties)
+[unsplit_method: {:unsplit_lib, :last_modified, []}]
+
+
+
+
+
+[wnorman@mrRoboto todo_cache] $ git diff mix.exs
+diff --git a/mix.exs b/mix.exs
+index 0c6fe9d..1c3012e 100644
+--- a/mix.exs
++++ b/mix.exs
+@@ -15,7 +15,7 @@ defmodule Todo.Mixfile do
+   # Type "mix help compile.app" for more information
+   def application do
+     [
+-      applications: [:libcluster, :logger, :gproc, :cowboy, :plug, :mnesia, :swarm],
++      applications: [:libcluster, :logger, :gproc, :cowboy, :plug, :mnesia, :swarm, :unsplit],
+       mod: {Todo.Application, []},
+       env: []
+     ]
+@@ -37,6 +37,7 @@ defmodule Todo.Mixfile do
+       {:plug, "~> 1.3.0"},
+       {:libcluster, "~> 2.0"},
+       {:swarm, "~> 3.0"},
++      {:unsplit, git: "https://github.com/uwiger/unsplit.git"},
+       {:meck, "~> 0.8.3", only: :test},
+       {:httpoison, "~> 0.10.0", only: :test}
+     ]
 

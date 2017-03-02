@@ -3,6 +3,9 @@ defmodule Todo.List do
   # This allows quick fetch of data by date and reduces the amount 
   # of data written back to the database on each change.
   # %todo_list{days: %{entry.date: [entries]}}
+  #
+  #The struct %Todo.List{days: days, size: size} is actually just syntactic sugar
+  #for %{__struct__: Todo.List, days: days, size: size}
   defstruct days: Map.new, size: 0
 
   def new(entries \\ []) do

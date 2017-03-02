@@ -71,15 +71,6 @@ defmodule Todo.DatabaseWorker do
     {:noreply, new_state}
   end
 
-  def handle_call({:delete, key}, from, state) do
-    new_state = 
-      state
-      |> queue_delete_request(from, key) 
-      |> maybe_store
-
-    {:noreply, new_state}
-  end
-
   def handle_call({:get, key}, _, state) do
     # Always read from the database. Looking up data in the queue should
     # not be done because that data is not stored and may not
@@ -131,14 +122,7 @@ defmodule Todo.DatabaseWorker do
 
   defp queue_write_request(state, from, key, data) do
 
-    action = fn() -> apply(:mnesia, :write, [{:todo_lists, key, data}]) end
-
-    %{state | store_queue: Map.put(state.store_queue, key, {from, action})}
-  end
-
-  defp queue_delete_request(state, from, key) do
-
-    action = fn() -> apply(:mnesia, :delete, [{:todo_lists, key}]) end
+    action = fn() -> apply(:mnesia, :write, [{:todo_lists, key, data, :calendar.universal_time}]) end
 
     %{state | store_queue: Map.put(state.store_queue, key, {from, action})}
   end
