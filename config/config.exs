@@ -15,7 +15,16 @@ config :libcluster,
   topologies: [
     todo_cluster: [
       strategy: Cluster.Strategy.Epmd,
-      config: [hosts: [:"n1@192.168.1.12", :"n2@192.168.1.12", :"n3@192.168.1.14", :"n4@192.168.1.14"]]
+      config: [hosts: [:"n1@192.168.1.12", :"n2@192.168.1.12", :"n3@192.168.1.14", :"n4@192.168.1.14"]],
+      # The function to use for connecting nodes. The node
+      # name will be appended to the argument list. Optional
+      connect: {:net_kernel, :connect, []},
+      # The function to use for disconnecting nodes. The node
+      # name will be appended to the argument list. Optional
+      disconnect: {:net_kernel, :disconnect, []},
+      # A list of options for the supervisor child spec
+      # of the selected strategy. Optional
+      child_spec: [restart: :transient]
     ]
   ]
 #

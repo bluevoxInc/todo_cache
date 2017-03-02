@@ -357,30 +357,11 @@ iex(n1@192.168.1.12)6> :mnesia.system_info(:tables)
 iex(n1@192.168.1.12)8> :mnesia.table_info(:todo_lists, :user_properties)
 [unsplit_method: {:unsplit_lib, :last_modified, []}]
 
+***************************************************************************************
+#Add unsplit:  
 
+mix.exs
+ applications: [:libcluster, :logger, :gproc, :cowboy, :plug, :mnesia, :swarm, :unsplit],
+{:unsplit, git: "https://github.com/uwiger/unsplit.git"},
 
-
-
-[wnorman@mrRoboto todo_cache] $ git diff mix.exs
-diff --git a/mix.exs b/mix.exs
-index 0c6fe9d..1c3012e 100644
---- a/mix.exs
-+++ b/mix.exs
-@@ -15,7 +15,7 @@ defmodule Todo.Mixfile do
-   # Type "mix help compile.app" for more information
-   def application do
-     [
--      applications: [:libcluster, :logger, :gproc, :cowboy, :plug, :mnesia, :swarm],
-+      applications: [:libcluster, :logger, :gproc, :cowboy, :plug, :mnesia, :swarm, :unsplit],
-       mod: {Todo.Application, []},
-       env: []
-     ]
-@@ -37,6 +37,7 @@ defmodule Todo.Mixfile do
-       {:plug, "~> 1.3.0"},
-       {:libcluster, "~> 2.0"},
-       {:swarm, "~> 3.0"},
-+      {:unsplit, git: "https://github.com/uwiger/unsplit.git"},
-       {:meck, "~> 0.8.3", only: :test},
-       {:httpoison, "~> 0.10.0", only: :test}
-     ]
 
