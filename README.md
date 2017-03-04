@@ -316,7 +316,8 @@ iex(proto1@mrRoboto)25> :mnesia.transaction(fn ->
 ...(proto1@mrRoboto)25> :ok = action.()
 ...(proto1@mrRoboto)25> end)
 {:atomic, :ok}
-iex(proto1@mrRoboto)26> :mnesia.transaction(fn ->                             ...(proto1@mrRoboto)26> :mnesia.match_object({TodoList, {"bills_list", :_}, :_, :_})
+iex(proto1@mrRoboto)26> :mnesia.transaction(fn ->     
+...(proto1@mrRoboto)26> :mnesia.match_object({TodoList, {"bills_list", :_}, :_, :_})
 ...(proto1@mrRoboto)26> end)
 {:atomic,
  [{TodoList, {"bills_list", {2017, 3, 11}},
@@ -357,11 +358,263 @@ iex(n1@192.168.1.12)6> :mnesia.system_info(:tables)
 iex(n1@192.168.1.12)8> :mnesia.table_info(:todo_lists, :user_properties)
 [unsplit_method: {:unsplit_lib, :last_modified, []}]
 
-***************************************************************************************
+**************************************Handle Net Splits*************************************  
 #Add unsplit:  
 
-mix.exs
- applications: [:libcluster, :logger, :gproc, :cowboy, :plug, :mnesia, :swarm, :unsplit],
-{:unsplit, git: "https://github.com/uwiger/unsplit.git"},
+mix.exs  
+ applications: [:libcluster, :logger, :gproc, :cowboy, :plug, :mnesia, :swarm, :unsplit],  
+deps: {:unsplit, git: "https://github.com/uwiger/unsplit.git"},  
+
+$ mix deps.get gives error:  
+** (Mix) Command "git --git-dir=.git checkout --quiet HEAD" failed
+
+$ vi deps/unsplit/rebar.config  
+change  
+{deps, [{edown, ".*", {git, "https://github.com/esl/edown", "HEAD"}}  
+to  
+{deps, [{edown, ".*", {git, "https://github.com/uwiger/edown"}}  
 
 
+# Start all four nodes and add a few values to Todo List. Simulate a net split by closing  
+# the lid of machine two. After a few minutes, open the lid. See that the nodes are split.  
+ 
+iex(n4@192.168.1.14)6> nodes=[node()|Node.list]  
+[:"n4@192.168.1.14", :"n3@192.168.1.14"]  
+
+#Reconnect  
+iex(n4@192.168.1.14)7> Node.connect(:"n2@192.168.1.12")  
+true  
+inconsistency. Context = running_partitioned_network; Node = :"n2@192.168.1.12"  
+ 
+have lock...  
+IslandA = ['n3@192.168.1.14','n4@192.168.1.14'];  
+IslandB = ['n1@192.168.1.12','n2@192.168.1.12']  
+nodes_of(todo_lists) = ['n1@192.168.1.12','n2@192.168.1.12','n4@192.168.1.14','n3@192.168.1.14']  
+Affected tabs = [todo_lists]  
+Methods = [{todo_lists,['n1@192.168.1.12','n2@192.168.1.12','n4@192.168.1.14','n3@192.168.1.14'],  
+ {unsplit_lib,last_modified,[]}}]  
+ 
+Held locks = [{'n4@192.168.1.14',[{{schema,'______WHOLETABLE_____'},  
+    write,  
+    {tid,510,<0.436.0>}},  
+    {{todo_lists,'______WHOLETABLE_____'},  
+    write,  
+    {tid,510,<0.436.0>}}]},  
+    {'n2@192.168.1.12',[{{schema,'______WHOLETABLE_____'},  
+    write,  
+    {tid,510,<0.436.0>}},  
+    {{todo_lists,'______WHOLETABLE_____'},  
+    write,  
+    {tid,510,<0.436.0>}}]}]  
+stitching: [{todo_lists,['n1@192.168.1.12','n2@192.168.1.12','n4@192.168.1.14','n3@192.168.1.14'],  
+ {unsplit_lib,last_modified,[]}}]  
+ do_stitch({todo_lists,['n1@192.168.1.12','n2@192.168.1.12','n4@192.168.1.14','n3@192.168.1.14'],  
+ {unsplit_lib,last_modified,[]}}, 'n2@192.168.1.12').  
+ 'n2@192.168.1.12' has a copy of todo_lists? -> true  
+Calling unsplit_lib:last_modified(init, [todo_lists,[name,list,modified]])Starting merge of todo_lists ([name,list,modified]) 
+ -> {ok,{todo_lists,4}}
+ Res = {ok,['n2@192.168.1.12']}
+ inconsistency. Context = starting_partitioned_network; Node = 'n2@192.168.1.12'
+ have lock...
+ 'n2@192.168.1.12' already stitched, it seems. All is well.
+ Res = ok
+ inconsistency. Context = running_partitioned_network; Node = 'n1@192.168.1.12'
+ have lock...
+ 'n1@192.168.1.12' already stitched, it seems. All is well.
+ Res = ok
+ inconsistency. Context = starting_partitioned_network; Node = 'n1@192.168.1.12'
+ have lock...
+ 'n1@192.168.1.12' already stitched, it seems. All is well.
+ Res = ok
+ Got event: {mnesia_system_event,{mnesia_up,'n2@192.168.1.12'}}
+ Got event: {mnesia_system_event,{mnesia_up,'n1@192.168.1.12'}}
+ Got event: {mnesia_system_event,{mnesia_up,'n4@192.168.1.14'}}
+  
+**************************************************************************************  
+# Close lid of machine two again  
+# Reopen and observe a split in the clusters  
+# Add two new values, one for each machine  
+
+$ curl -X POST 'http://192.168.1.12:5555/add_entry?list=bills_list&date=20170308&title=first%20transaction'  
+
+$ curl -X POST 'http://192.168.1.14:5555/add_entry?list=bills_list&date=20170308&title=second%20transaction' 
+
+$ curl 'http://192.168.1.12:5555/all_entries?list=bills_list'2017-3-5 dog walk
+2017-3-5 band practice
+2017-3-6 coding session
+2017-3-7 return library book
+2017-3-8 first transaction
+
+$ curl 'http://192.168.1.14:5555/all_entries?list=bills_list'
+2017-3-5 dog walk
+2017-3-5 band practice
+2017-3-6 coding session
+2017-3-7 return library book
+2017-3-8 second transaction
+
+# Observe  
+Held locks = [{'n2@192.168.1.12',[{{schema,'______WHOLETABLE_____'},
+                                   write,
+                                   {tid,528,<0.575.0>}},
+                                  {{todo_lists,'______WHOLETABLE_____'},
+                                   write,
+                                   {tid,528,<0.575.0>}}]},
+              {'n3@192.168.1.14',[{{schema,'______WHOLETABLE_____'},
+                                   write,
+                                   {tid,528,<0.575.0>}},
+                                  {{todo_lists,'______WHOLETABLE_____'},
+                                   write,
+                                   {tid,528,<0.575.0>}}]}]
+stitching: [{todo_lists,['n1@192.168.1.12','n2@192.168.1.12',
+                         'n4@192.168.1.14','n3@192.168.1.14'],
+                        {unsplit_lib,last_modified,[]}}]
+do_stitch({todo_lists,['n1@192.168.1.12','n2@192.168.1.12','n4@192.168.1.14',
+                       'n3@192.168.1.14'],
+                      {unsplit_lib,last_modified,[]}}, 'n3@192.168.1.14').
+'n3@192.168.1.14' has a copy of todo_lists? -> true
+Calling unsplit_lib:last_modified(init, [todo_lists,[name,list,modified]])Starting merge of todo_lists ([name,list,modified])
+ -> {ok,{todo_lists,4}}
+last_version_entry({[{todo_lists,{<<"bills_list">>,{2017,3,8}},
+                                 [#{date => {2017,3,8},
+                                    title => <<"first transaction">>}],
+                                 {{2017,3,2},{20,32,20}}}],
+                    [{todo_lists,{<<"bills_list">>,{2017,3,8}},
+                                 [#{date => {2017,3,8},
+                                    title => <<"second transaction">>}],
+                                 {{2017,3,2},{20,34,21}}}]})
+compare({[{todo_lists,{<<"bills_list">>,{2017,3,8}},
+                      [#{date => {2017,3,8},title => <<"first transaction">>}],
+                      {{2017,3,2},{20,32,20}}}],
+         [{todo_lists,{<<"bills_list">>,{2017,3,8}},
+                      [#{date => {2017,3,8},title => <<"second transaction">>}],
+                      {{2017,3,2},{20,34,21}}}]})
+ -> {ok,[{write,{todo_lists,{<<"bills_list">>,{2017,3,8}},
+                            [#{date => {2017,3,8},title => <<"second transaction">>}],
+                            {{2017,3,2},{20,34,21}}}}],
+        same,
+        {todo_lists,4}}
+Res = {ok,['n3@192.168.1.14']}
+inconsistency. Context = starting_partitioned_network; Node = 'n3@192.168.1.14'
+have lock...
+'n3@192.168.1.14' already stitched, it seems. All is well.
+Res = ok
+inconsistency. Context = running_partitioned_network; Node = 'n4@192.168.1.14'
+have lock...
+'n4@192.168.1.14' already stitched, it seems. All is well.
+Res = ok
+inconsistency. Context = starting_partitioned_network; Node = 'n4@192.168.1.14'
+have lock...
+'n4@192.168.1.14' already stitched, it seems. All is well.
+Res = ok
+Got event: {mnesia_system_event,{mnesia_up,'n4@192.168.1.14'}}
+Got event: {mnesia_system_event,{mnesia_up,'n3@192.168.1.14'}}
+Got event: {mnesia_system_event,{mnesia_up,'n2@192.168.1.12'}}
+
+
+$ curl 'http://192.168.1.14:5555/all_entries?list=bills_list'
+2017-3-5 dog walk
+2017-3-5 band practice
+2017-3-6 coding session
+2017-3-7 return library book
+2017-3-8 second transaction
+
+$ curl 'http://192.168.1.12:5555/all_entries?list=bills_list'
+2017-3-5 dog walk
+2017-3-5 band practice
+2017-3-6 coding session
+2017-3-7 return library book
+2017-3-8 second transaction
+
+# This only keeps the last record entered into the table.  
+# It ignors all previous transactions. Not very useful.  
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@-- VClock --@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  
+
+iex(n1@192.168.1.12)8> :mnesia.create_table(Test, [attributes: [:name, :list, :vclock],
+...(n1@192.168.1.12)8> user_properties: [unsplit_method: {:unsplit_lib, :vclock, [:vclock]}], disc_only_copies: nodes])
+{:atomic, :ok}
+iex(n1@192.168.1.12)9> :mnesia.read_table_property(Test, :unsplit_method)      
+{:unsplit_method, {:unsplit_lib, :vclock, [:vclock]}}  
+
+iex(n1@192.168.1.12)10> my_vclock_1 = :unsplit_vclock.fresh
+[]
+
+my_vclock_2 = :unsplit_vclock.increment(node(), my_vclock_1)
+["n1@192.168.1.12": {1, 541868556}]
+
+iex(n1@192.168.1.12)13> action = fn() ->                                
+...(n1@192.168.1.12)13> apply(:mnesia, :write,                          
+...(n1@192.168.1.12)13> [{Test, {"bills_list", {2017, 3, 3}},           
+...(n1@192.168.1.12)13> [%{date: {2017, 3, 3}, title: "band practice"}],
+...(n1@192.168.1.12)13> my_vclock_2}])                                  
+...(n1@192.168.1.12)13> end
+#Function<20.52032458/0 in :erl_eval.expr/5>
+iex(n1@192.168.1.12)14> :mnesia.activity(:transaction, action)
+:ok
+
+iex(n1@192.168.1.12)16> :mnesia.activity(:transaction, fn ->
+...(n1@192.168.1.12)16> :mnesia.match_object({Test, :_, :_, :_}) end)
+[{Test, {"bills_list", {2017, 3, 3}},
+  [%{date: {2017, 3, 3}, title: "band practice"}],
+  ["n1@192.168.1.12": {1, 541868556}]}]
+
+iex(n1@192.168.1.12)21> {:atomic, [{t,n,l,v}]} = :mnesia.transaction(
+  fn -> :mnesia.wread({Test, {"bills_list", {2017, 03, 03}}}) end)
+{:atomic,
+ [{Test, {"bills_list", {2017, 3, 3}},
+   [%{date: {2017, 3, 3}, title: "band practice"}],
+   ["n1@192.168.1.12": {1, 541868556}]}]}
+
+iex(n1@192.168.1.12)22> v
+["n1@192.168.1.12": {1, 541868556}]
+
+trans = fn() ->  
+case :mnesia.wread({Test, {"bills_list", {2017, 3, 3}}}) do
+  [{t,n,l,v}] ->   
+    v2 = :unsplit_vclock.increment(node(), v)  
+    :mnesia.write({t, n, l, v2})    
+  _ ->      
+    :mnesia.abort("No such record")  
+  end   
+end
+
+#Function<20.52032458/0 in :erl_eval.expr/5>
+iex(n1@192.168.1.12)26> :mnesia.transaction(trans)   
+{:atomic, :ok}
+
+iex(n1@192.168.1.12)32> {:atomic, [{t,n,l,v}]} = :mnesia.transaction(fn -> :mnesia.wread({Test, {"bills_list", {2017, 03, 03}}}) end)
+{:atomic,
+ [{Test, {"bills_list", {2017, 3, 3}},
+   [%{date: {2017, 3, 3}, title: "band practice"}],
+   ["n1@192.168.1.12": {2, 541877859}]}]}
+
+iex(n1@192.168.1.12)35> my_vclock_2
+["n1@192.168.1.12": {1, 541868556}]
+iex(n1@192.168.1.12)36> v
+["n1@192.168.1.12": {2, 541877859}]
+
+iex(n1@192.168.1.12)38> :unsplit_vclock.descends(v, my_vclock_2)
+true
+
+activity = fn ->                                     
+:mnesia.write({Test, {"bills_list", {2017, 03, 04}}, 
+[%{date: {2017, 03, 04}, title: "band practice"}],   
+:unsplit_vclock.fresh})                              
+end
+#Function<20.52032458/0 in :erl_eval.expr/5>
+:mnesia.activity(:transaction, activity, [], Todo.Vclock)
+Test
+{Test, {"bills_list", {2017, 3, 4}},
+ [%{date: {2017, 3, 4}, title: "finish book"}], []}
+:write
+:write
+
+# set vclock within action command:
+action = fn() -> apply(Todo.Vclock, :write, [{Test,
+{"bills_list", {2017, 3, 4}},
+[%{date: {2017, 3, 4}, title: "finish book"}]}])
+end
+
+:mnesia.transaction(fn ->
+:ok = action.()
+end)

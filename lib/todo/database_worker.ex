@@ -1,11 +1,11 @@
 defmodule Todo.DatabaseWorker do
   use GenServer
 
-  def start_link(worker_id) do
-    Todo.Logger.info "Starting database worker #{worker_id}"
+  def start_link(db_table, worker_id) do
+    Todo.Logger.info "Starting database worker #{worker_id} for table #{db_table}"
 
     GenServer.start_link(
-      __MODULE__, nil,
+      __MODULE__, db_table,
       name: via_tuple(worker_id))
   end
 
@@ -31,7 +31,7 @@ defmodule Todo.DatabaseWorker do
     {:via, :gproc, {:n, :l, {:database_worker, worker_id}}}
   end
 
-  def init(_) do
+  def init(db_table) do
     # Rather than handling one request at a time, the worker attempts
     # to adapt to increased load by batching requests.
     #
@@ -55,6 +55,7 @@ defmodule Todo.DatabaseWorker do
     {
       :ok,
       %{
+        db_table: db_table,       #Name of DB table
         store_job: nil,           #PID of the storing job
         store_queue: Map.new      #Queue of incoming items to store
       }
@@ -71,33 +72,33 @@ defmodule Todo.DatabaseWorker do
     {:noreply, new_state}
   end
 
-  def handle_call({:get, key}, _, state) do
+  def handle_call({:get, key}, _, %{db_table: db_table} = state) do
     # Always read from the database. Looking up data in the queue should
     # not be done because that data is not stored and may not
     # actually end up in the database.
 #IO.inspect key
     read_result = :mnesia.transaction(fn -> 
-      :mnesia.read({:todo_lists, key}) end)
+      :mnesia.read({db_table, key}) end)
 
     data = case read_result do
-      {:atomic, [{:todo_lists, ^key, list, _}]} -> list
+      {:atomic, [{^db_table, ^key, list, _}]} -> list
       _ -> nil
     end
 
     {:reply, data, state}
   end
 
-  def handle_call({:get_by_name, name}, _, state) do
+  def handle_call({:get_by_name, name}, _, %{db_table: db_table} = state) do
     read_result = :mnesia.transaction(fn ->
-      :mnesia.match_object({:todo_lists, {name, :_}, :_, :_})
+      :mnesia.match_object({db_table, {name, :_}, :_, :_})
     end)
 
     data = case read_result do
       {:atomic, []} -> []
 
-      {:atomic, [{:todo_lists, {^name, _}, l1, _} | rest]} -> 
+      {:atomic, [{^db_table, {^name, _}, l1, _} | rest]} -> 
         Enum.reduce(rest, l1, 
-            fn({:todo_lists, {^name, _}, ln, _}, acc) -> [ln | acc] end)
+            fn({^db_table, {^name, _}, ln, _}, acc) -> [ln | acc] end)
         |> List.flatten
         |> Enum.reverse
 
@@ -120,9 +121,9 @@ defmodule Todo.DatabaseWorker do
 
   def handle_info(_, state), do: {:noreply, state}
 
-  defp queue_write_request(state, from, key, data) do
+  defp queue_write_request(%{db_table: db_table} = state, from, key, data) do
 
-    action = fn() -> apply(:mnesia, :write, [{:todo_lists, key, data, :calendar.universal_time}]) end
+    action = fn() -> apply(:mnesia, :write, [{db_table, key, data, :calendar.universal_time}]) end
 
     %{state | store_queue: Map.put(state.store_queue, key, {from, action})}
   end

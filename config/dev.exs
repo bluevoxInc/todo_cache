@@ -1,3 +1,3 @@
 use Mix.Config
 
-config :todo, persist: "./dev-persist/"
+config :todo, database_table: ":todo_lists"

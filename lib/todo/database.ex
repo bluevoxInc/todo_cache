@@ -1,8 +1,8 @@
 defmodule Todo.Database do
   @pool_size 3
 
-  def start_link do
-    Todo.PoolSupervisor.start_link(@pool_size)
+  def start_link(db_table) do
+    Todo.PoolSupervisor.start_link(db_table, @pool_size)
   end
 
   def store(key, data) do
