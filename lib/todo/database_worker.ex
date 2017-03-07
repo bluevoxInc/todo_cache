@@ -102,9 +102,9 @@ defmodule Todo.DatabaseWorker do
         |> List.flatten
         |> Enum.reverse
 
-      _ ->
+      unexpected_result ->
         Todo.Logger.error "Todo.DatabaseWorker: Unexpected result" 
-        nil
+        IO.inspect unexpected_result
     end
 
     {:reply, data, state}
@@ -123,7 +123,7 @@ defmodule Todo.DatabaseWorker do
 
   defp queue_write_request(%{db_table: db_table} = state, from, key, data) do
 
-    action = fn() -> apply(:mnesia, :write, [{db_table, key, data, :calendar.universal_time}]) end
+    action = fn() -> :mnesia.transaction(fn -> apply(Todo.Vclock, :write_rec, [{db_table, key, data}]) end) end
 
     %{state | store_queue: Map.put(state.store_queue, key, {from, action})}
   end
@@ -157,17 +157,14 @@ defmodule Todo.DatabaseWorker do
   end
 
   defp do_write(store_queue) do
-    # Store the data
-    {:atomic, :ok} = :mnesia.transaction(fn ->
-      for {_, {_, action}} <- store_queue do
-        :ok = action.()
+    for {_key, {from, action}} <- store_queue do
+      case action.() do
+        {:atomic, :ok} ->
+          GenServer.reply(from, :ok)
+        other -> 
+          Todo.Logger.error "Failed transaction: #{inspect other}"
+          GenServer.reply(from, :fail)
       end
-      :ok
-    end)
-
-    #Reply to clients:
-    for {_, {from, _}} <- store_queue do
-      GenServer.reply(from, :ok)
     end
   end
 

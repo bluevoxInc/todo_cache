@@ -358,8 +358,18 @@ iex(n1@192.168.1.12)6> :mnesia.system_info(:tables)
 iex(n1@192.168.1.12)8> :mnesia.table_info(:todo_lists, :user_properties)
 [unsplit_method: {:unsplit_lib, :last_modified, []}]
 
-**************************************Handle Net Splits*************************************  
+**************************************--Handle Net Splits--*************************************  
+# CAP -> Consistency, Availability, and Partition tolerance
+# You can have either CP or AP.
+#Use case here is to have AP but shoot for eventual Consistency.
+
 #Add unsplit:  
+# Unsplit promises to heal netsplits. This implies that a sub-cluster,
+# formed as the result of a network partition, can continue handling 
+# requests. When the partition is eliminated hopefully unsplit 
+# can detect this and update the database nodes so that the 
+# table has consistent set of records throughout the cluster.
+
 
 mix.exs  
  applications: [:libcluster, :logger, :gproc, :cowboy, :plug, :mnesia, :swarm, :unsplit],  
@@ -618,3 +628,80 @@ end
 :mnesia.transaction(fn ->
 :ok = action.()
 end)
+
+*****************************--Custom vclock method--****************
+# Change user_properties:
+
+iex(n1@192.168.1.12)1> :mnesia.read_table_property(Test, :unsplit_method)
+{:unsplit_method, {:unsplit_lib, :vclock, [:vclock]}}
+
+iex(n1@192.168.1.12)2> :mnesia.write_table_property(Test, {:unsplit_method,
+...(n1@192.168.1.12)2> {Todo.Vclock, :vclock, [:vclock]}})
+{:atomic, :ok}
+
+iex(n1@192.168.1.12)3> :mnesia.read_table_property(Test, :unsplit_method)
+{:unsplit_method, {Todo.Vclock, :vclock, [:vclock]}}
+
+iex(n2@192.168.1.12)22> :mnesia.read_table_property(:todo_lists, :unsplit_method)
+{:unsplit_method, {:unsplit_lib, :last_modified, []}}
+iex(n2@192.168.1.12)23> :mnesia.write_table_property(:todo_lists, {:unsplit_method,
+...(n2@192.168.1.12)23> {:unsplit_lib, :no_action, []}})
+
+********************************************************************
+# Unfortunately, netsplit does not meet expectations:
+# Here is a case where it appears to fail my use case:i
+
+# Run a two-node cluster for table Test, 
+iex(n1@192.168.1.12)2> :mnesia.system_info(:running_db_nodes)
+[:"n2@192.168.1.12", :"n1@192.168.1.12"]
+
+# Simulate a network partition:
+iex(n1@192.168.1.12)3> Node.disconnect(:"n2@192.168.1.12")
+true
+
+# Add a unique record on each node:
+
+[wnorman@mrRoboto todo_cache] $ curl -X POST 'http://192.168.1.12:5454/
+      add_ery?list=bills_list&date=20170302&title=node1_test2'
+
+[wnorman@mrRoboto todo_cache] $ curl -X POST 'http://192.168.1.12:5555/
+      add_entry?list=bills_list&date=20170303&title=node2_test2'
+
+iex(n1@192.168.1.12)7> :mnesia.transaction(fn -> :mnesia.match_object(
+            {Test, :_, :_, :_}) end)
+{:atomic,
+ [{Test, {"bills_list", {2017, 3, 2}},
+   [%{date: {2017, 3, 2}, title: "node1_test2"}],
+   ["n1@192.168.1.12": {1, 542217645}]}]}  
+
+iex(n2@192.168.1.12)6> :mnesia.transaction(fn -> :mnesia.match_object(
+            {Test, :_, :_, :_}) end)
+{:atomic,
+ [{Test, {"bills_list", {2017, 3, 3}},
+   [%{date: {2017, 3, 3}, title: "node2_test2"}],
+   ["n2@192.168.1.12": {1, 542217669}]}]}
+
+# Join the cluster
+iex(n1@192.168.1.12)8> Node.connect(:"n2@192.168.1.12")
+true
+
+# Note that only one side of the cluster contains both transactions
+
+iex(n1@192.168.1.12)10> :mnesia.transaction(fn -> :mnesia.match_object({Test, :_, :_, :_}) end)
+{:atomic,
+ [{Test, {"bills_list", {2017, 3, 2}},
+   [%{date: {2017, 3, 2}, title: "node1_test2"}],
+   ["n1@192.168.1.12": {1, 542217645}]},
+  {Test, {"bills_list", {2017, 3, 3}},
+   [%{date: {2017, 3, 3}, title: "node2_test2"}],
+   ["n2@192.168.1.12": {1, 542217669}]}]}  
+
+iex(n2@192.168.1.12)9> :mnesia.transaction(fn -> :mnesia.match_object({Test, :_, :_, :_}) end)
+{:atomic,
+ [{Test, {"bills_list", {2017, 3, 3}},
+   [%{date: {2017, 3, 3}, title: "node2_test2"}],
+   ["n2@192.168.1.12": {1, 542217669}]}]}  
+
+# This is not useful at all!
+
+
