@@ -123,7 +123,7 @@ defmodule Todo.DatabaseWorker do
 
   defp queue_write_request(%{db_table: db_table} = state, from, key, data) do
 
-    action = fn() -> :mnesia.transaction(fn -> apply(Todo.Vclock, :write_rec, [{db_table, key, data}]) end) end
+    action = fn() -> :mnesia.transaction(fn -> apply(Todo.Vclock.Transaction, :write_rec, [{db_table, key, data}]) end) end
 
     %{state | store_queue: Map.put(state.store_queue, key, {from, action})}
   end

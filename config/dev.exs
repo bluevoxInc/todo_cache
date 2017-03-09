@@ -1,3 +1,3 @@
 use Mix.Config
 
-config :todo, database_table: Test
+config :todo, database_table: Test2

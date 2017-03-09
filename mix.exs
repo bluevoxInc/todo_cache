@@ -15,7 +15,7 @@ defmodule Todo.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     [
-      applications: [:libcluster, :logger, :gproc, :cowboy, :plug, :mnesia, :swarm, :unsplit],
+      applications: [:libcluster, :logger, :gproc, :cowboy, :plug, :mnesia, :swarm, :reunion],
       mod: {Todo.Application, []},
       env: []
     ]
@@ -37,7 +37,8 @@ defmodule Todo.Mixfile do
       {:plug, "~> 1.3.0"},
       {:libcluster, "~> 2.0"},
       {:swarm, "~> 3.0"},
-      {:unsplit, git: "https://github.com/uwiger/unsplit.git"},
+      {:reunion, git: "https://github.com/snar/reunion.git"},
+      {:vector_clock, git: "https://github.com/sschneider1207/vector_clock.git"},
       {:meck, "~> 0.8.3", only: :test},
       {:httpoison, "~> 0.10.0", only: :test}
     ]

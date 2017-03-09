@@ -20,3 +20,4 @@ erl_crash.dump
 /persist
 /test-persist
 /Mnesia.*
+mix.lock
