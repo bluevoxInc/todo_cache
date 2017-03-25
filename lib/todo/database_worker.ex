@@ -1,8 +1,9 @@
 defmodule Todo.DatabaseWorker do
   use GenServer
+  require Logger
 
   def start_link(db_table, worker_id) do
-    Todo.Logger.info "Starting database worker #{worker_id} for table #{db_table}"
+    Logger.info "Starting database worker #{worker_id} for table #{db_table}"
 
     GenServer.start_link(
       __MODULE__, db_table,
@@ -13,10 +14,6 @@ defmodule Todo.DatabaseWorker do
     GenServer.call(via_tuple(worker_id), {:store, key, data})
   end
 
-  def delete(worker_id, key) do
-    GenServer.call(via_tuple(worker_id), {:delete, key})
-  end
-
   def get(worker_id, key) do
     GenServer.call(via_tuple(worker_id), {:get, key})
   end
@@ -25,10 +22,14 @@ defmodule Todo.DatabaseWorker do
     GenServer.call(via_tuple(worker_id), {:get_by_name, name})
   end
 
+  def get_vClock(worker_id, key) do
+    GenServer.call(via_tuple(worker_id), {:get_vclock, key})
+  end
+
   #The :via option expects a module that exports 
   #register_name/2, unregister_name/1, whereis_name/1 and send/2.
   defp via_tuple(worker_id) do
-    {:via, :gproc, {:n, :l, {:database_worker, worker_id}}}
+    {:via, :swarm, {:n, :l, {:database_worker, worker_id}}}
   end
 
   def init(db_table) do
@@ -103,11 +104,23 @@ defmodule Todo.DatabaseWorker do
         |> Enum.reverse
 
       unexpected_result ->
-        Todo.Logger.error "Todo.DatabaseWorker: Unexpected result" 
+        Logger.error "Todo.DatabaseWorker: Unexpected result" 
         IO.inspect unexpected_result
     end
 
     {:reply, data, state}
+  end
+
+  def handle_call({:get_vclock, key}, _, %{db_table: db_table} = state) do
+    read_result = :mnesia.transaction(fn -> 
+      :mnesia.read({db_table, key}) end)
+
+    vclock = case read_result do
+      {:atomic, [{^db_table, ^key, _, vclk}]} -> vclk
+      _ -> nil
+    end
+
+    {:reply, vclock, state}
   end
 
   def handle_info({:DOWN, _, :process, pid, _}, %{store_job: store_job} = state) when pid == store_job do
@@ -162,7 +175,7 @@ defmodule Todo.DatabaseWorker do
         {:atomic, :ok} ->
           GenServer.reply(from, :ok)
         other -> 
-          Todo.Logger.error "Failed transaction: #{inspect other}"
+          Logger.error "Failed transaction: #{inspect other}"
           GenServer.reply(from, :fail)
       end
     end

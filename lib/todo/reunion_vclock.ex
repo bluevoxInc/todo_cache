@@ -1,4 +1,6 @@
 defmodule Todo.Reunion.Vclock do
+  require Logger
+
   # Handle node merge based on vector clock fields.
   #
   # This is specific to the Todo list. 
@@ -20,26 +22,27 @@ defmodule Todo.Reunion.Vclock do
   #   disc_only_copies: nodes])
   #
   # :mnesia.write_table_property(Test2, 
-  #   {reunion_compare, {Todo.Reunion.Vclock, :vclock, [:vclock,:list]}}) 
+  #   {:reunion_compare, {Todo.Reunion.Vclock, :vclock, [:vclock,:list]}}) 
   #
 
-  alias VectorClock.Dot
   @key_pos 1 #record tag is the 1st element in the tuple
 
-  def vclock(:init, {tab, tbl_type, attrs, [vclock|data]}, rmNode) do
-    Todo.Logger.info("Starting merge of #{tab} (#{inspect attrs})")
-    {:ok, %{type: tbl_type, tbl: tab, rmNode: rmNode, 
-                          dp: pos(data, tab, attrs), vp: pos(vclock, tab, attrs)}}
+  def vclock(:init, {tab, :set, attrs, [vclock,data|_]}, rmNode) do
+    Logger.info("Starting merge of #{tab} (#{inspect attrs})")
+    {:ok, {:set, rmNode, 
+                pos(data, tab, attrs), pos(vclock, tab, attrs)}}
   end
 
-  def vclock(:done, _state, _rmNode) do
+  def vclock(:done, state, _rmNode) do
+    Logger.info("Merge complete: #{inspect state}")
     :ok
   end
 
-  def vclock(lcl_rcds, rmt_rcds, %{dp: dp, vp: vp, rmNode: rmNode} = state) do
+  def vclock(lcl_rcds, rmt_rcds, {:set, rmNode, dp, vp} = state) do
     IO.inspect lcl_rcds
     IO.inspect rmt_rcds
     actions = merge_by_vclock(lcl_rcds, rmt_rcds, rmNode, {dp, vp}, [])
+    Logger.info("Writing the following transactions #{inspect actions}")
     {:ok, actions, state}
   end
 
@@ -102,19 +105,19 @@ defmodule Todo.Reunion.Vclock do
     vclk_a = elem(rcd_a, vclk_pos)
     vclk_b = elem(rcd_b, vclk_pos)
     vclk_c = VectorClock.merge([vclk_a, vclk_b])
-    a_older_b = VectorClock.get_timestamp(vclk_a, node()) > 
+    a_newer_b = VectorClock.get_timestamp(vclk_a, node()) > 
                   VectorClock.get_timestamp(vclk_b, rmNode) 
 
     data_a = elem(rcd_a, data_pos)
     data_b = elem(rcd_b, data_pos)
-    rcd = case {data_a, data_b, a_older_b} do
-      {[], _, false} ->    #only write a cleared record if it is the latest transaction
+    rcd = case {data_a, data_b, a_newer_b} do
+      {[], _, true} ->    #only write a cleared record if it is the latest transaction
         put_elem(rcd_a, vclk_pos, vclk_c)
-      {[], _, true} ->
-        put_elem(rcd_b, vclk_pos, vclk_c)
-      {_, [], false} ->
+      {[], _, false} ->
         put_elem(rcd_b, vclk_pos, vclk_c)
       {_, [], true} ->
+        put_elem(rcd_b, vclk_pos, vclk_c)
+      {_, [], false} ->
         put_elem(rcd_a, vclk_pos, vclk_c)
       _ -> 
         data_c = Enum.uniq(data_a ++ data_b)

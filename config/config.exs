@@ -35,9 +35,16 @@ config :libcluster,
 # Or configure a 3rd-party app:
 #
 config :logger, 
+  handle_otp_reports: true,
+  handle_sasl_reports: false,
   backends: [:console],
   compile_time_purge_level: :debug,  #purges at compilation time all calls that have log level lower than the value of this option.
-  level: :debug
+  level: :info
+
+config :logger, :console, 
+  format: "$time $level $node $metadata $levelpad$message\n", 
+  metadata: [:module, :function, :line],
+  colors: [info: :black]
 #
 
 # It is also possible to import configuration files, relative to this

@@ -1,10 +1,11 @@
 defmodule Todo.Server do
   use GenServer
+  require Logger 
 
   @timeout 24*60*60*1000
 
   def start_link(list_name) do
-    Todo.Logger.info("Starting to-do server for #{list_name}")
+    Logger.info("Starting to-do server for #{list_name}")
     GenServer.start_link(__MODULE__, [list_name])
   end
 
@@ -100,7 +101,7 @@ defmodule Todo.Server do
     #{:reply, {:resume, todo_list}, {name, timer, todo_list}}
     #end
   def handle_call({:swarm, :begin_handoff}, _from, {name, timer, todo_list}) do
-    Todo.Logger.debug "begin handoff name: #{name}"
+    Logger.debug "begin handoff name: #{name}"
     {:reply, :restart, {name, timer, todo_list}}
   end
 
@@ -116,7 +117,7 @@ defmodule Todo.Server do
   # so make sure to design your processes around this caveat if you
   # wish to hand off state like this.
   def handle_cast({:swarm, :end_handoff, todo_list_handoff}, {name, timer, _}) do
-    Todo.Logger.debug "end handoff name: #{name}"
+    Logger.debug "end handoff name: #{name}"
     {:noreply, {name, timer, todo_list_handoff}}
   end
   # called when a network split is healed and the local process
@@ -128,7 +129,7 @@ defmodule Todo.Server do
   # In this case I depend on mnesia to merge,
   # so clear the cash and let it reload on the next request.
   def handle_cast({:swarm, :resolve_conflict, _todo_list}, {name, timer, _}) do
-    Todo.Logger.debug "healing a network split --#{name}"
+    Logger.debug "healing a network split --#{name}"
     {:noreply, {name, timer, Todo.List.new}}
   end
 
@@ -146,11 +147,11 @@ defmodule Todo.Server do
   # because it's being moved, use this as an opportunity
   # to clean up.
   def handle_info({:swarm, :die}, {name, timer, todo_list}) do
-    Todo.Logger.debug "process for #{name} shut down because it is being moved"
+    Logger.debug "process for #{name} shut down because it is being moved"
     {:stop, :shutdown, {name, timer, todo_list}}
   end
   def handle_info(:name_server_timeout, {name, timer, todo_list}) do
-    Todo.Logger.debug "#{name} has timed out"
+    Logger.debug "#{name} has timed out"
     {:stop, :timeout, {name, timer, todo_list}}
   end
   def handle_info(_, state), do: {:noreply, state}

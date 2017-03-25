@@ -19,5 +19,7 @@ erl_crash.dump
 /dev-persist
 /persist
 /test-persist
-/Mnesia.*
+/Mnesia*
 mix.lock
+notes
+

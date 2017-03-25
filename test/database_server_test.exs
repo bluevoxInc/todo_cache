@@ -3,10 +3,16 @@ defmodule DatabaseServerTest do
 
   setup do
     :meck.new(Todo.DatabaseWorker, [:no_link])
-    :meck.expect(Todo.DatabaseWorker, :start_link, &MockTodo.DatabaseWorker.start/1)
+    :meck.expect(Todo.DatabaseWorker, :start_link, &MockTodo.DatabaseWorker.start/2)
     :meck.expect(Todo.DatabaseWorker, :store, &MockTodo.DatabaseWorker.store/3)
     :meck.expect(Todo.DatabaseWorker, :get, &MockTodo.DatabaseWorker.get/2)
-    Todo.Database.start_link
+
+    case Application.get_env(:todo, :database_table) do
+      nil -> raise "Test database table not specified."
+      database_table ->
+      {:ok, _} = Todo.DatabaseWorker.start_link(database_table, 1)
+      {:ok, _} = Todo.DatabaseWorker.start_link(database_table, 2)
+    end
 
     on_exit(fn ->
       :meck.unload(Todo.DatabaseWorker)
@@ -25,8 +31,8 @@ end
 defmodule MockTodo.DatabaseWorker do
   use GenServer
 
-  def start(worker_id) do
-    GenServer.start_link(__MODULE__, nil, name: worker_alias(worker_id))
+  def start(db_table, worker_id) do
+    GenServer.start_link(__MODULE__, db_table, name: worker_alias(worker_id))
   end
 
   def store(worker_id, key, data) do

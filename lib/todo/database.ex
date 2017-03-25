@@ -23,6 +23,13 @@ defmodule Todo.Database do
     |> Todo.DatabaseWorker.get_by_name(todo_list_name)
   end
 
+  # added for test only 
+  def get_vClock(key) do
+    key
+    |> choose_worker
+    |> Todo.DatabaseWorker.get_vClock(key)
+  end
+
   defp choose_worker(key) do
     :erlang.phash2(key, @pool_size) + 1
   end

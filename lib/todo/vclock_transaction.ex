@@ -9,7 +9,6 @@ defmodule Todo.Vclock.Transaction do
   # This is wrapped in a transaction when called from the Todo.DatabaseWorker 
   # module.
   #
-  alias VectorClock.Dot
 
   def write_rec({tab, key, data}) do
     v_inc = case :mnesia.wread({tab, key}) do

@@ -14,11 +14,19 @@ defmodule Todo.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    [
-      applications: [:libcluster, :logger, :gproc, :cowboy, :plug, :mnesia, :swarm, :reunion],
-      mod: {Todo.Application, []},
-      env: []
-    ]
+    if Mix.env == :test do
+      [
+        applications: [:logger, :cowboy, :plug, :mnesia, :swarm],
+        mod: {Todo.Application, []},
+        env: []
+      ]
+    else
+      [
+        applications: [:libcluster, :logger, :cowboy, :plug, :mnesia, :swarm, :reunion],
+        mod: {Todo.Application, []},
+        env: []
+      ]
+    end
   end
 
   # Dependencies can be Hex packages:
@@ -32,7 +40,6 @@ defmodule Todo.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:gproc, "~> 0.5.0"},
       {:cowboy, "~> 1.0.4"},
       {:plug, "~> 1.3.0"},
       {:libcluster, "~> 2.0"},
