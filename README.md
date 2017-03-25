@@ -1,6 +1,6 @@
 # TodoCache
 
-**Todo_Cache: The Elixir in Action book exercises from chapter 7 through chapter 12.**
+**Todo_Cache: The Elixir in Action book exercises from chapter 7 through chapter 11.**
 
 ## Operation
 
